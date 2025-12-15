@@ -1,0 +1,3285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital SAT Platform - Thầy Phi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        #question-pill-icon {
+            transition: transform 0.2s ease;
+        }
+        .chevron-open {
+            transform: rotate(180deg);
+        }
+    /* --- TYPOGRAPHY & PAGE LAYOUT --- */
+    body {
+        font-family: 'Noto Serif', serif;
+        background-color: #f3f4f6;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;           /* keep the app-like layout on desktop */
+        overflow: hidden;        /* main scroll happens inside panels on desktop */
+        font-size: 0.95rem;      /* Reduced base size */
+    }
+    /* Force everything to Noto Serif */
+    .sans {
+        font-family: 'Noto Serif', serif;
+    }
+    .font-sans {
+        font-family: 'Noto Serif', serif !important;
+    }
+
+    #main-content {
+        flex-grow: 1;
+        display: flex;
+        overflow: hidden;
+        position: relative;
+        min-height: 0; /* important so children can scroll properly */
+    }
+
+    /* --- LEFT PANEL: PASSAGE + NOTES RAIL (RESIZABLE) --- */
+    #left-panel {
+        width: 50%;
+        display: flex;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        position: relative;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    #left-panel::-webkit-scrollbar { display: none; }
+
+    #passage-wrapper {
+        flex: 1;
+        /* Reduced padding for maximum visibility */
+        padding: 1rem 1.5rem 2rem; 
+        font-size: 0.95rem; /* Slightly smaller text */
+        line-height: 1.5;   /* Tighter line height */
+        color: #111827;
+        position: relative;
+    }
+
+    /* NOTES RAIL */
+    #notes-rail {
+        width: 0;
+        flex-shrink: 0;
+        background-color: #f9fafb;
+        border-left: 1px solid transparent;
+        position: relative;
+        min-height: 100%;
+        transition: width 0.3s ease, border-color 0.3s ease;
+        overflow-y: auto;
+        padding: 8px 4px 12px 4px; /* Reduced padding */
+    }
+    #notes-rail.open {
+        width: 240px; /* Slightly narrower */
+        border-left: 1px solid #e5e7eb;
+    }
+
+    .note-card {
+        position: relative;
+        width: 220px;
+        background: white;
+        border: 1px solid #9ca3af;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        z-index: 10;
+        font-size: 0.8rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        margin: 0 auto 8px auto;
+    }
+    .note-card.visible { opacity: 1; }
+
+    .note-header {
+        background-color: #e5e7eb;
+        padding: 4px 8px;
+        font-weight: bold;
+        font-size: 0.7rem;
+        color: #1f2937;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #d1d5db;
+        transition: background-color 0.2s;
+    }
+    .note-header-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+    .note-delete-btn {
+        cursor: pointer;
+        color: #4b5563;
+        padding: 2px;
+    }
+    .note-delete-btn:hover {
+        color: #dc2626;
+        background: rgba(0,0,0,0.05);
+        border-radius: 4px;
+    }
+    .note-body { padding: 0; background-color: white; }
+    .note-textarea {
+        width: 100%;
+        min-height: 60px;
+        padding: 6px 8px;
+        border: none;
+        resize: none;
+        outline: none;
+        font-family: inherit;
+        font-size: 0.8rem;
+        color: #374151;
+    }
+    .note-textarea::placeholder { color: #9ca3af; }
+
+    /* Rail toggle */
+    .rail-toggle {
+        position: absolute;
+        bottom: 20px;
+        left: -24px;
+        width: 24px;
+        height: 36px;
+        background-color: #4b5563;
+        border-top-left-radius: 18px;
+        border-bottom-left-radius: 18px;
+        display: flex; /* always visible */
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        z-index: 70;
+        transition: background-color 0.2s;
+    }
+    .rail-toggle:hover { background-color: #374151; }
+
+    /* --- RIGHT PANEL: QUESTIONS --- */
+    #right-panel {
+        width: 50%;
+        overflow-y: auto;
+        background: white;
+        /* Reduced padding */
+        padding: 1rem 1.5rem 2rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    /* --- CENTERED LAYOUT FOR MATH MCQ (Bluebook-style column) --- */
+    #right-panel.mcq-centered {
+        align-items: stretch; /* standard column; width controlled by children */
+    }
+
+    #right-panel.mcq-centered > * {
+        max-width: 720px;   /* width of the inner column */
+        width: 100%;
+        margin-left: auto;  /* center the column */
+        margin-right: auto;
+    }
+
+    /* Question text: slightly smaller & tighter */
+    #question-text {
+        font-size: 0.95rem; /* Reduced */
+        line-height: 1.5;
+        margin-bottom: 0.75rem; /* Reduced margin */
+    }
+
+    /* --- RESIZER HANDLE --- */
+    #resizer {
+        width: 12px;
+        background: transparent;
+        cursor: col-resize;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        margin-left: -6px;
+        z-index: 60;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+    #resizer::after {
+        content: '';
+        width: 4px;
+        height: 100%;
+        background-color: #d1d5db;
+        border-left: 1px solid white;
+        border-right: 1px solid white;
+        transition: background-color 0.2s;
+    }
+    #resizer:hover::after,
+    #resizer.dragging::after {
+        background-color: #3b82f6;
+    }
+
+    /* --------- MOBILE & SMALL TABLETS --------- */
+    @media (max-width: 768px) {
+        body {
+            height: auto;
+            min-height: 100vh;
+            overflow: auto;
+        }
+        #main-content {
+            flex-direction: column;
+            overflow: visible;
+        }
+        #left-panel,
+        #right-panel {
+            width: 100% !important;
+            height: auto;
+            max-height: none;
+            overflow-y: visible; 
+            padding: 1rem; /* Even smaller padding on mobile */
+        }
+        #left-panel { border-right: none; }
+        #right-panel {
+            border-left: none;
+            border-top: 2px solid #d1d5db;
+        }
+        #notes-rail {
+            position: relative;
+            width: 100% !important;
+            height: auto;
+            max-height: none;
+            border-left: none;
+            border-top: 1px solid #e5e7eb;
+            padding-bottom: 20px;
+            display: none;
+        }
+        #notes-rail.open { display: block; }
+        #resizer { display: none; }
+        #results-modal > div {
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.75rem;
+        }
+    }
+
+    /* --- HIGHLIGHT & TOOLBAR --- */
+    #highlight-btn.active { border-bottom: 2px solid #1f2937; }
+
+    #highlight-mode-tooltip {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 8px;
+        background-color: #374151;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 6px;
+        width: 220px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 60;
+        font-size: 0.8rem;
+        line-height: 1.3;
+    }
+    #highlight-mode-tooltip::before {
+        content: '';
+        position: absolute;
+        top: -6px;
+        right: 20px;
+        width: 12px;
+        height: 12px;
+        background-color: #374151;
+        transform: rotate(45deg);
+    }
+
+    #text-selection-toolbar {
+        display: flex; 
+        position: absolute;
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 40px;
+        padding: 4px 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 100;
+        align-items: center;
+        gap: 6px;
+        height: 40px;
+    }
+    #text-selection-toolbar.hidden { display: none !important; }
+
+    .toolbar-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .toolbar-btn:hover { background-color: #f3f4f6; }
+
+    .color-circle {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .color-circle:hover {
+        transform: scale(1.1);
+        border-color: #9ca3af;
+    }
+
+    .bg-yellow-hl { background-color: #fde047; }
+    .bg-blue-hl    { background-color: #bae6fd; }
+    .bg-pink-hl    { background-color: #fbcfe8; }
+
+    .ink-drop { display: none; width: 12px; height: 12px; color: #4b5563; }
+    .active-ink .ink-drop { display: block; }
+    .active-ink .color-circle { border-color: #4b5563; }
+
+    .underline-btn-container {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    .underline-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding-top: 8px;
+        z-index: 101;
+    }
+    .underline-dropdown-content {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 40px;
+    }
+    .underline-btn-container:hover .underline-dropdown,
+    .underline-dropdown:hover { display: block; }
+
+    .underline-option {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .underline-option:hover { background-color: #f3f4f6; }
+
+    .hl-yellow { background-color: #fef08a; }
+    .hl-blue   { background-color: #bae6fd; }
+    .hl-pink   { background-color: #fbcfe8; }
+
+    .ul-solid {
+        text-decoration: underline;
+        text-decoration-style: solid;
+        text-decoration-thickness: 2px;
+    }
+    .ul-dashed {
+        text-decoration: underline;
+        text-decoration-style: dashed;
+        text-decoration-thickness: 2px;
+    }
+    .ul-dotted {
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-decoration-thickness: 2px;
+    }
+
+    /* --- OPTIONS & STRIKETHROUGH --- */
+    .option-row {
+        display: flex;
+        flex-direction: column; /* feedback under option */
+        margin-bottom: 6px; /* Tighter spacing */
+    }
+
+    .option-container {
+        display: flex;
+        gap: 6px;
+        align-items: stretch;
+    }
+
+    .option-box {
+        flex: 1;
+        display: flex;
+        gap: 8px;
+        padding: 8px 10px; /* Condensed padding */
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        align-items: flex-start;
+        background-color: white;
+        font-size: 0.9rem; /* Smaller font */
+        line-height: 1.4;
+        position: relative;
+    }
+    .option-box:hover { border-color: #9ca3af; }
+    .option-box.selected {
+        border-color: #2563eb;
+        background-color: #eff6ff;
+        box-shadow: 0 0 0 1px #2563eb inset;
+    }
+
+    /* REVIEW MODE STYLES */
+    .option-box.correct {
+        border-color: #16a34a !important;
+        background-color: #f0fdf4 !important;
+    }
+    .option-box.incorrect {
+        border-color: #dc2626 !important;
+        background-color: #fef2f2 !important;
+    }
+    
+    /* Icons for Review */
+    .review-icon {
+        margin-left: auto;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.75rem;
+    }
+    .text-green-600 { color: #16a34a; }
+    .text-red-600 { color: #dc2626; }
+
+    .option-label {
+        width: 22px;
+        height: 22px;
+        border: 1px solid #6b7280;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: #374151;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+    .option-box.selected .option-label {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+    }
+    .option-box.correct .option-label {
+        background: #16a34a; border-color: #16a34a; color: white;
+    }
+    .option-box.incorrect .option-label {
+        background: #dc2626; border-color: #dc2626; color: white;
+    }
+
+    .strike-btn {
+        font-size: 0.65rem;
+        font-weight: bold;
+        color: #9ca3af;
+        text-decoration: line-through;
+        border: 1px solid #e5e7eb;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background-color: white;
+        cursor: pointer;
+        align-self: center;
+        transition: all 0.2s;
+        height: fit-content;
+    }
+    .strike-btn:hover { background-color: #f3f4f6; }
+    .strike-btn.active {
+        color: #374151; text-decoration: none; border-color: #9ca3af; background-color: #f3f4f6;
+    }
+    
+    .option-box.struck { opacity: 0.6; background-color: #f9fafb; }
+    .option-box.struck .option-text { text-decoration: line-through; color: #9ca3af; }
+
+    .feedback {
+        margin-top: 4px;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    .feedback.correct-fb {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+    }
+    .feedback.incorrect-fb {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- RESULTS MODAL --- */
+    #results-modal {
+        position: fixed;
+        inset: 0;
+        background: #f3f4f6;
+        z-index: 200;
+        display: none;
+        overflow-y: auto;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    #results-modal.active { display: flex; }
+    /* Keep nav modal scrollable too */
+    #nav-modal > div {
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    /* Make the question navigator overlay sit above everything, including the resizer */
+    #nav-modal {
+        z-index: 300; /* higher than #resizer's 60 and Tailwind's z-50 */
+    }
+</style>
+
+</head>
+
+<body class="text-gray-900">
+
+    <div id="text-selection-toolbar" class="hidden">
+        <button class="toolbar-btn" id="btn-yellow" onclick="updateHighlightColor('hl-yellow')" title="Highlight Yellow">
+            <div class="color-circle bg-yellow-hl">
+                <svg class="ink-drop" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 22c4.97 0 9-3.63 9-8 0-4.42-6.5-12-9-14-2.5 2-9 9.58-9 14 0 4.37 4.03 8 9 8z"/>
+                </svg>
+            </div>
+        </button>
+        <button class="toolbar-btn" id="btn-blue" onclick="updateHighlightColor('hl-blue')" title="Highlight Blue">
+            <div class="color-circle bg-blue-hl">
+                <svg class="ink-drop" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 22c4.97 0 9-3.63 9-8 0-4.42-6.5-12-9-14-2.5 2-9 9.58-9 14 0 4.37 4.03 8 9 8z"/>
+                </svg>
+            </div>
+        </button>
+        <button class="toolbar-btn" id="btn-pink" onclick="updateHighlightColor('hl-pink')" title="Highlight Pink">
+            <div class="color-circle bg-pink-hl">
+                <svg class="ink-drop" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 22c4.97 0 9-3.63 9-8 0-4.42-6.5-12-9-14-2.5 2-9 9.58-9 14 0 4.37 4.03 8 9 8z"/>
+                </svg>
+            </div>
+        </button>
+
+        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+        <div class="underline-btn-container">
+            <button class="toolbar-btn flex items-center space-x-0.5 px-2" title="Underline Options">
+                <span class="font-bold text-base underline decoration-2">U</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <div class="underline-dropdown">
+                <div class="underline-dropdown-content">
+                    <div class="underline-option" onclick="toggleUnderline('ul-solid')" title="Solid">
+                        <div class="w-3 h-px bg-black"></div>
+                    </div>
+                    <div class="underline-option" onclick="toggleUnderline('ul-dashed')" title="Dashed">
+                        <div class="w-3 border-b-2 border-dashed border-black"></div>
+                    </div>
+                    <div class="underline-option" onclick="toggleUnderline('ul-dotted')" title="Dotted">
+                        <div class="w-3 border-b-2 border-dotted border-black"></div>
+                    </div>
+                    <div class="underline-option" onclick="toggleUnderline('none')" title="None">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" class="text-red-500">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="toolbar-btn text-gray-600 hover:text-red-600" onclick="removeFormat()" title="Remove Formatting">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        </button>
+
+        <button class="toolbar-btn text-gray-600 hover:text-yellow-600" onclick="addNote()" title="Add Note">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <header class="h-12 bg-white border-b border-gray-200 flex justify-between items-center px-4 shadow-sm z-40">
+    <div class="flex items-center gap-3">
+        <h1 class="font-bold text-sm">Thầy Phi - 0919.850.138</h1>
+        <div class="h-4 w-px bg-gray-300"></div>
+        <span id="section-name" class="font-medium text-gray-600 text-sm sans">Reading and Writing</span>
+        <span id="module-name" class="bg-gray-100 text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide sans">Module 1</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <button onclick="saveAndExit()" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded border border-blue-200 transition sans">
+            Save & Exit
+        </button>
+        
+        <div class="relative">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <button id="highlight-btn"
+                            class="flex flex-col items-center text-gray-600 hover:text-gray-900 px-2 py-0.5 rounded-t-sm transition border-b-2 border-transparent">
+                        <span class="text-[10px] font-semibold">Highlights & Notes</span>
+                    </button>
+                    <div id="highlight-mode-tooltip">
+                        <div class="font-bold text-sm mb-1">Highlight mode on:</div>
+                        <div>Select text in the passage or options to create a highlight with notes.</div>
+                    </div>
+                </div>
+
+                <div id="tools-math" class="hidden flex gap-2">
+                    <button class="px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded sans">Calculator</button>
+                    <button class="px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded sans">Reference</button>
+                </div>
+
+                <div class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-200 font-mono font-medium text-sm" id="timer-box">
+                    <span id="timer">32:00</span>
+                    <button onclick="toggleTimer()" class="text-[10px] text-gray-400 hover:text-gray-900 underline sans">Hide</button>
+                </div>
+            </div> </div> </div> </header>
+
+
+    <div id="main-content">
+        <div id="left-panel">
+            <div id="passage-wrapper">
+                <div id="passage-text"></div>
+            </div>
+            <div id="notes-rail">
+                <div class="rail-toggle" id="rail-toggle" onclick="toggleNotesRail()">
+                    <span id="rail-arrow" class="text-white font-bold text-sm">&lt;</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="resizer"></div>
+
+        <div id="right-panel">
+            <div id="q-header" class="flex justify-between items-center mb-2">
+                <div class="flex items-center gap-2">
+                    <div class="bg-black text-white w-6 h-6 flex items-center justify-center font-bold rounded text-xs sans" id="q-num">1</div>
+
+                    <button id="mark-btn"
+                            type="button"
+                            onclick="toggleMark()"
+                            class="flex items-center gap-1 sans text-xs text-gray-500 hover:text-red-600">
+                        <svg id="mark-icon-off" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                            <path d="M19 21l-7-5-7 5V5a 2 2 0 0 1 2-2h10a 2 2 0 0 1 2 2z"></path>
+                        </svg>
+
+                        <svg id="mark-icon-on" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round"
+                             class="shrink-0 hidden">
+                            <path d="M19 21l-7-5-7 5V5a 2 2 0 0 1 2-2h10a 2 2 0 0 1 2 2z"></path>
+                        </svg>
+
+                        <span id="mark-label" class="text-gray-500 font-medium text-xs">
+                            Mark for Review
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="question-text" class="text-sm font-medium"></div>
+            <div id="options-list"></div>
+        </div>
+    </div>
+
+    <footer class="h-12 bg-white border-t border-gray-200 flex items-center px-4 z-40 relative">
+        <button
+            id="question-pill"
+            onclick="toggleNavModal()"
+            class="absolute left-1/2 -translate-x-1/2 font-bold text-white bg-black px-3 py-1 rounded-full text-xs flex items-center gap-1 shadow-md sans">
+            <span>Question <span id="footer-idx">1</span> of <span id="footer-total">27</span></span>
+            <svg id="question-pill-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline> </svg>
+        </button>
+
+        <div class="ml-auto flex gap-2">
+            <button id="btn-prev" onclick="nav(-1)" class="px-4 py-1.5 bg-white border border-gray-300 font-bold text-gray-700 rounded text-sm hover:bg-gray-50 transition sans disabled:opacity-50">
+                Back
+            </button>
+            <button id="btn-next" onclick="nav(1)" class="px-4 py-1.5 bg-blue-600 font-bold text-white rounded text-sm hover:bg-blue-700 transition sans">
+                Next
+            </button>
+        </div>
+    </footer>
+
+    <div id="nav-modal"
+        class="fixed inset-0 bg-black/30 hidden z-50 flex items-end justify-center pb-12 sm:pb-16"
+        onclick="toggleNavModal()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-gray-200 relative"
+            onclick="event.stopPropagation()">
+            <div class="absolute left-1/2 -translate-x-1/2 -bottom-3 w-0 h-0
+                        border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white">
+            </div>
+
+            <div class="absolute left-1/2 -translate-x-1/2 -bottom-3 w-0 h-0
+                        border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white">
+            </div>
+
+            <div class="px-6 pt-5 pb-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 id="nav-section-title" class="text-base sm:text-lg font-bold">
+                    Section 1, Module 1: Reading &amp; Writing Questions
+                </h3>
+                <button onclick="toggleNavModal()" class="text-2xl text-gray-400 hover:text-black leading-none">
+                    &times;
+                </button>
+            </div>
+
+            <div class="px-6 py-3 border-b border-gray-200 text-xs sm:text-sm flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded border border-gray-500 flex items-center justify-center">
+                        <span class="w-2 h-2 rounded-full bg-black"></span>
+                    </div>
+                    <span>Current</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded border border-gray-400 border-dashed"></div>
+                    <span>Unanswered</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                        viewBox="0 0 24 24" fill="red" stroke="red" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a 2 2 0 0 1 2-2h10a 2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>For Review</span>
+                </div>
+            </div>
+
+            <div class="px-6 pt-4 pb-4">
+                <div id="nav-grid" class="grid grid-cols-6 sm:grid-cols-8 gap-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="results-modal">
+        <div class="max-w-3xl w-full bg-white rounded-xl shadow-2xl overflow-hidden mt-10 mb-10">
+            <div class="bg-gray-900 p-10 text-white text-center">
+                <h1 class="text-4xl font-bold mb-2 font-serif">Test Complete</h1>
+                <p class="opacity-80 sans">Your Score Report</p>
+            </div>
+            <div class="p-10">
+                <div class="flex flex-col items-center mb-12">
+                    <div class="text-8xl font-bold text-blue-600 leading-none mb-2 sans" id="score-total">---</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wider sans">Total Score (400-1600)</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-8 mb-8 text-center border-t border-b border-gray-100 py-8">
+                    <div>
+                        <div class="text-3xl font-bold text-gray-800 mb-1 sans" id="score-rw">---</div>
+                        <div class="text-xs text-gray-500 font-bold uppercase sans">Reading & Writing</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-gray-800 mb-1 sans" id="score-math">---</div>
+                        <div class="text-xs text-gray-500 font-bold uppercase sans">Math</div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-100 flex flex-col items-center text-center mb-8">
+                    <h3 class="font-bold text-blue-900 mb-2 sans">Send Report to Teacher</h3>
+                    <p class="text-sm text-blue-700 mb-4 sans">Email your results to <strong>phivan.hust@gmail.com</strong></p>
+                    <button onclick="sendEmail()" class="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 transition sans text-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        Open Email Client
+                    </button>
+                </div>
+
+                <button onclick="startReview()" class="w-full py-4 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition sans text-lg">
+                    Review Answers
+                </button>
+                <button onclick="showHistory()" class="mt-4 text-gray-500 underline text-sm hover:text-gray-800 sans">
+                    View Past Score History
+                </button>
+                <div id="history-list" class="hidden mt-4 text-left w-full max-w-md bg-gray-50 p-4 rounded border border-gray-200"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/* -------------------- DATA -------------------- */
+
+const rw1 = [
+    // 27 real RW questions from December 2025 SAT test
+    // Question 1
+{
+    passage: `<p>Scholars of Mexican literature have focused their attention on writers of the fertile period following the Mexican Revolution (which lasted from 1910–1920), such as Laura Esquivel. These writers are often considered the leading figures of the Mexican literary canon, but nineteenth-century writers like Antonio Menéndez de la Peña are just as ______ Mexican literature.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "overlooked in", c: false, f: "Incorrect. The text contrasts the 'leading figures' with nineteenth-century writers, stating the latter are 'just as' significant. 'Overlooked' would contradict the idea that they are equal in status to the leading figures."},
+        {t: "polarizing in", c: false, f: "Incorrect. There is no evidence in the text that these writers cause disagreement or controversy."},
+        {t: "essential to", c: true, f: "Correct. The text argues that while post-Revolution writers are considered 'leading,' the nineteenth-century writers are 'just as' important or vital to the canon."},
+        {t: "knowledgeable about", c: false, f: "Incorrect. Writers create the literature; they are not merely 'knowledgeable about' it in this context."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 2
+{
+    passage: `<p>Several scholars of children's literature recently ______ to discuss the work of Sharon Bell Mathis, author of such lauded books as <em>Ray Charles</em>. Once together, they talked about her style, influences, and themes.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "stipulated", c: false, f: "Incorrect. 'Stipulated' means to demand or specify a requirement, which does not fit the context of a meeting."},
+        {t: "convened", c: true, f: "Correct. 'Convened' means to come together for a meeting or activity, which aligns with the phrase 'Once together' in the following sentence."},
+        {t: "cited", c: false, f: "Incorrect. 'Cited' means to reference or quote, which does not describe the act of gathering to discuss."},
+        {t: "ascribed", c: false, f: "Incorrect. 'Ascribed' means to attribute a quality to a cause, which is contextually irrelevant."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 3
+{
+    passage: `<p>Whereas researchers long thought the Congo rainforest constrained the initial expansion of Bantu-speaking peoples (which today include the Kuria in Tanzania and the Shona in Zimbabwe) across subequatorial Africa, recent studies indicate that early Bantu communities managed to ______ the rainforest, a feat facilitated by drier conditions that opened up viable corridors through the vegetation.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "traverse", c: true, f: "Correct. 'Traverse' means to travel across or through. The mention of 'viable corridors through the vegetation' confirms they passed through the rainforest."},
+        {t: "decimate", c: false, f: "Incorrect. 'Decimate' means to destroy a large proportion of, which is not supported by the text."},
+        {t: "circumvent", c: false, f: "Incorrect. 'Circumvent' means to go around. The text explicitly mentions moving 'through' the vegetation, not around it."},
+        {t: "preserve", c: false, f: "Incorrect. 'Preserve' implies maintaining the rainforest, which is unrelated to the context of migration."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 4
+{
+    passage: `<p>The extensive use of the costly pigment ultramarine in the paintings of Johannes Vermeer—creator of masterpieces such as <em>Woman with a Lute</em> (ca. 1662–1663)—was likely ______ as much by the pigment's chemical durability as by its exclusiveness and vivid blue hue: relative to indigo and other blue pigments employed by Vermeer and his contemporaries, ultramarine is less susceptible to degradation.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "constrained", c: false, f: "Incorrect. 'Constrained' means limited, which contradicts the 'extensive use' described."},
+        {t: "motivated", c: true, f: "Correct. The text lists reasons (durability, hue, exclusiveness) that drove Vermeer's choice. 'Motivated' accurately describes this influence."},
+        {t: "expedited", c: false, f: "Incorrect. 'Expedited' means speeded up, which does not make sense in the context of choosing artistic materials."},
+        {t: "preempted", c: false, f: "Incorrect. 'Preempted' means taken action to prevent, which implies a different relationship than the one described."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 5
+{
+    passage: `<p>It may seem that works of art are best experienced in person. However, in an online collection from the Tokyo Fuji Art Museum in Tokyo, Japan, people can zoom in on a high-quality image of the woodblock print <em>Fine Breezy Day</em> by Katsushika Hokusai. A student argues that viewers usually can't examine works of art in a museum as carefully as they can examine works in online collections.</p>`,
+    question: `Which statement, if true, would most directly support the underlined argument?`,
+    options: [
+        {t: "Most museums have signs that provide basic information about the works of art on display.", c: false, f: "Incorrect. Informational signs do not affect the visual scrutiny of the artwork itself."},
+        {t: "Many museums have started adding images of works from their collections to their websites.", c: false, f: "Incorrect. This states a fact about museum practices but does not explain why online viewing allows for more careful examination."},
+        {t: "Most museums don't allow visitors to get very close to the works of art on display.", c: true, f: "Correct. If visitors cannot get close in person, they cannot see fine details. The online 'zoom' feature overcomes this limitation, supporting the argument that online viewing allows more careful examination."},
+        {t: "Museums don't always put works by different artists together in one room.", c: false, f: "Incorrect. The arrangement of rooms is irrelevant to the scrutiny of individual works."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 6
+{
+    passage: `<p>Harold Newton's <em>Yellow Day</em>, a wetland landscape with palm trees and lush greenery set against the pastel yellows and pinks of the sky and water, is typical of paintings by the mid-twentieth-century landscape artists now known as the Florida Highwaymen. Even though Florida was rapidly being developed at that time, tourists in particular held the idea that its distinctive tropical and coastal environments represented a pristine natural world, untouched by modernity. As with many Highwaymen paintings, the appeal of <em>Yellow Day</em> derived from its ability to capture this sentiment.</p>`,
+    question: `Which choice best states the main idea of the text?`,
+    options: [
+        {t: "Although many paintings by the Florida Highwaymen have subjects in common, Yellow Day is now more highly regarded by critics than other Florida Highwaymen paintings are.", c: false, f: "Incorrect. The text does not compare the critical reception of 'Yellow Day' to other paintings."},
+        {t: "Although Yellow Day and other paintings by the Florida Highwaymen were originally celebrated for their depictions of Florida's natural environments, art historians now question these paintings' accuracy.", c: false, f: "Incorrect. There is no mention of historians questioning the accuracy of the landscapes."},
+        {t: "Tourists to Florida in the mid-twentieth century were more likely to admire the sentiments expressed in Yellow Day and similar paintings than Florida residents were.", c: false, f: "Incorrect. While the text mentions tourists' views, it does not explicitly compare their admiration to that of residents."},
+        {t: "Yellow Day and other paintings by the Florida Highwaymen were notable for their ability to appeal to a popular conception about the state of Florida in the mid-twentieth century.", c: true, f: "Correct. The text explains that the paintings appealed to the tourists' belief (popular conception) that Florida was a 'pristine natural world'."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 7
+{
+    passage: `<p>Mushrooms, including <em>Coprinellus micaceus</em> and species from the genus <em>Cantharellus</em>, are known to use the process of evapotranspiration to maintain internal temperatures below ambient temperatures. This hypothermic behavior is enhanced by the many thin gills (lamellae) on the fungi's caps, with substantial surface area contributing to capacity for evaporation. Examining fungal thermoregulation mechanisms, Radamés Cordéro et al. determined that molds and yeasts also engage in evaporative cooling to facilitate hypothermia and suggest that, lacking features analogous to lamellae, these unicellular fungi aggregate into colonies to derive the benefit of greater surface area.</p>`,
+    question: `Which choice best states the main idea of the text?`,
+    options: [
+        {t: "Although a certain thermoregulation process has been observed in colonies of unicellular fungi, it has yet to be observed at the individual organism level.", c: false, f: "Incorrect. The text focuses on the mechanism (aggregation) used by colonies, not on the lack of observation in individuals."},
+        {t: "A recent analysis of specimens of Coprinellus micaceus and species from the genus Cantharellus substantiated the findings of earlier studies of thermoregulation mechanisms in several types of fungi.", c: false, f: "Incorrect. The text focuses on the comparison between mushrooms and molds/yeasts, not just on confirming mushroom studies."},
+        {t: "A study of a fungal thermoregulation mechanism determined that it is used more efficiently by molds and yeasts than by mushrooms and other multicellular fungi due to variances in colony size.", c: false, f: "Incorrect. The text does not claim molds/yeasts are *more efficient*, only that they use a different method (aggregation) to achieve the same effect."},
+        {t: "Despite significant differences in their biological structures, mushrooms, molds, and yeasts have been observed to utilize the same thermoregulation process to achieve a particular effect.", c: true, f: "Correct. The text explains that mushrooms use gills while molds/yeasts use colony aggregation (different structures) to achieve evaporative cooling (same process)."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 8
+{
+    passage: `<p>Editor Jared Shurin's 2023 anthology <em>The Big Book of Cyberpunk</em> contains 108 stories, an enormous number. The anthology has a vast chronological scope, including both James Tiptree Jr.'s "The Girl Who Was Plugged In" (1973) and Lavanya Lakshminarayan's "Études" (2020). In his introduction, Shurin defines cyberpunk as a subgenre of speculative fiction concerning "the influence of technology on the scale, the pace, or the pattern of human affairs"; <u>however, many critics have previously argued that cyberpunk is a literary movement that is not just idea driven but that has distinctive aesthetic components as well.</u></p>`,
+    question: `Which choice best describes the function of the underlined portion in the text as a whole?`,
+    options: [
+        {t: "It points out a characteristic that is shared by the work of Tiptree and Lakshminarayan.", c: false, f: "Incorrect. The underlined text discusses the definition of the genre generally, not the specific stories mentioned earlier."},
+        {t: "It explains one of several points of disagreement that an editor of a cyberpunk anthology has with a group of critics.", c: false, f: "Incorrect. The text presents the critics' view to contrast with the editor's definition, implying the editor's view might be limited, rather than highlighting an active disagreement initiated by the editor."},
+        {t: "It explains why some critics think that a particular anthology of cyberpunk stories should not be considered a definitive summary of its genre.", c: false, f: "Incorrect. The critics' argument is about the definition of the *genre*, not a critique of this specific anthology."},
+        {t: "It suggests a way in which a particular editor's definition of cyberpunk may be considered incomplete.", c: true, f: "Correct. Shurin defines the genre by its ideas (technology's influence). The underlined portion notes that critics believe the genre also has 'distinctive aesthetic components,' suggesting Shurin's definition is incomplete."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 9
+{
+    passage: `<p>Baltimore, Maryland, has installed shoreline-hardening structures—mainly jetties—along 71% of its shoreline to protect infrastructure from wave erosion and other hazards. To evaluate the responses of waterbirds at sites in the Chesapeake Bay on the US East Coast to shoreline hardening and other landscape alterations, Diann Prosser et al. surveyed waterbird communities consisting of sixty-four species, including the tundra swan and the great blue heron. Utilizing the Index of Waterbird Community Integrity (IWCI), on which a low score corresponds to low community integrity, the researchers concluded that shoreline hardening more negatively affects waterbirds than does land development for uses such as housing or agriculture.</p>`,
+    question: `Which finding, if true, would most directly challenge the researchers' conclusion?`,
+    options: [
+        {t: "Waterbird communities at Margothy, a site with a relatively low percentage of developed land and a relatively high percentage of hardened shoreline, had lower average IWCI scores than did waterbird communities at Back River, a site with a higher percentage of developed land and a lower percentage of hardened shoreline.", c: false, f: "Incorrect. This supports the conclusion. It shows the hardened site (Margothy) has a lower score (worse integrity) than the developed site (Back River)."},
+        {t: "Waterbird communities at Stony and Curtis, two sites with relatively high percentages of developed land and hardened shoreline, had similar IWCI scores, whereas waterbird communities at Ware and Honga, two sites with relatively low percentages of developed land and hardened shoreline, had widely differing IWCI scores.", c: false, f: "Incorrect. This data is inconclusive regarding the specific comparison between hardening and development."},
+        {t: "Waterbird communities at Mill, a site with a relatively low percentage of developed land and a relatively high percentage of hardened shoreline, had higher average IWCI scores than did waterbird communities at Langford, a site with a higher percentage of developed land and a lower percentage of hardened shoreline.", c: true, f: "Correct. The conclusion is that hardening is *worse* (lower score) than development. This option presents a hardened site (Mill) with a *higher* score than a developed site (Langford), directly contradicting the conclusion."},
+        {t: "Waterbird communities at Old Road, a site with a relatively high percentage of developed land and hardened shoreline, had lower average IWCI scores than did waterbird communities at Onancock, a site with a relatively low percentage of developed land and hardened shoreline.", c: false, f: "Incorrect. This compares high intensity overall vs low intensity overall, not the specific effects of hardening vs development."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 10
+{
+    passage: `<p>Joseph A. Walker's award-winning play <em>The River Niger</em> was produced in 1972 by the groundbreaking Negro Ensemble Company (NEC). NEC cofounder Robert Hooks, an actor, producer, and activist, had met actor and playwright Douglas Turner Ward while they were performing in a 1960 touring production of Lorraine Hansberry's play <em>A Raisin in the Sun</em>. <u>Together, they envisioned a theater company that would nurture and showcase the work of Black theater professionals.</u> Since NEC's founding in 1967, its workshops and performances have given Black playwrights, including Walker, a forum for their compelling stories.</p>`,
+    question: `Which choice best describes the function of the underlined sentence in the text as a whole?`,
+    options: [
+        {t: "It provides additional information about a person mentioned in the text.", c: false, f: "Incorrect. While it mentions the founders, the sentence's primary function is to explain the mission and origin of the company itself."},
+        {t: "It emphasizes the ongoing significance of the theater company discussed in the text.", c: false, f: "Incorrect. The *following* sentence discusses the ongoing significance ('Since NEC's founding...'). The underlined sentence discusses the initial vision."},
+        {t: "It illustrates the widespread influence of a play discussed earlier in the text.", c: false, f: "Incorrect. <em>A Raisin in the Sun</em> is only mentioned as the location where the founders met."},
+        {t: "It explains the circumstances that led to the formation of the theater company discussed in the text.", c: true, f: "Correct. The sentence details the shared vision and motivation that caused Hooks and Ward to found the NEC."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 11
+{
+    passage: `<p>The <em>Cygne</em> is just one of approximately three million known historical shipwrecks spread throughout the world's oceans, and their impact on sea life and underwater ecosystems is of great interest to researchers. Leila Hamdan and colleagues were particularly curious about the effects of wooden shipwrecks on seafloor microbial communities. The researchers studied two wooden shipwrecks in the Gulf of Mexico by placing pieces of pine and oak between zero and 200 meters away from each shipwreck to collect samples of three kinds of microbes: bacteria, archaea, and fungi. They found that across the three microbial communities, peak diversity and richness was observed on pine and oak samples placed approximately 125 meters from the shipwrecks.</p>`,
+    question: `Which choice best describes the overall structure of the text?`,
+    options: [
+        {t: "It states the number of known shipwrecks, describes the historical significance of one of those shipwrecks, and then comments on the various microbes found at the shipwreck site.", c: false, f: "Incorrect. It does not focus on the historical significance of the <em>Cygne</em>."},
+        {t: "It notes a general scientific interest in shipwrecks' ecological effects, describes a specific study related to that interest, and then states one of the study's findings.", c: true, f: "Correct. The text starts with general interest (ecosystems), moves to a specific study (Hamdan's work with wood samples), and concludes with a specific finding (peak diversity at 125m)."},
+        {t: "It introduces a study of microbial communities near shipwrecks that has received significant scholarly attention, summarizes the results of that study, and then describes a research team's reaction to the study.", c: false, f: "Incorrect. It presents the study itself, not a reaction to it."},
+        {t: "It names a famous historical shipwreck, describes the type of wood used to build that ship, and then explains how that wood type influences underwater microbial communities.", c: false, f: "Incorrect. The wood mentioned (pine/oak) was experimental material placed by researchers, not necessarily the wood of the ship itself."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 12
+{
+    passage: `<p>The fecal-steroidal profile of pronghorn is clearly distinct from those of other ungulates. <u>By contrast, bison dung cannot be distinguished from elk dung based solely on their fecal-steroidal profiles, as both contain similar levels of beta-sitosterol and cholestanone, among other sterols.</u> The relative levels of fecal zoostanols (steroids with animal origins), such as coprostanol and epi-coprostanol, in layers of lake bed sediments at Buffalo Ford Lake in Yellowstone National Park show that bison, elk, or both have been the dominant ungulate species in the lake's watershed for at least the last 2,000 years.</p>`,
+    question: `Which choice best describes the function of the underlined portion in the text as a whole?`,
+    options: [
+        {t: "It offers context that helps account for the finding that the dominant ungulate species in the Buffalo Ford Lake watershed have been largely unchanged for at least 2,000 years.", c: false, f: "Incorrect. It doesn't explain the 'unchanged' nature; it explains the ambiguity of the species identification."},
+        {t: "It presents an observation that supports an argument about why the dominant ungulate species in the Buffalo Ford Lake watershed shifted over the course of the last 2,000 years.", c: false, f: "Incorrect. The text implies the dominance was constant ('bison, elk, or both'), not that it shifted."},
+        {t: "It describes an assumption about two types of ungulates' fecal-steroidal profiles that the research on Buffalo Ford Lake sediment calls into question.", c: false, f: "Incorrect. The research accepts this fact; it does not question it."},
+        {t: "It provides information that explains why the data from Buffalo Ford Lake allow for multiple possibilities regarding the dominant ungulate species in the watershed.", c: true, f: "Correct. Because bison and elk dung are indistinguishable (as stated in the underlined text), the sediment data can only conclude that 'bison, elk, or both' were present, creating multiple possibilities."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 13
+{
+    passage: `<p><strong>Four European High-Speed Rail Hubs</strong></p><table><tr><th>Hub</th><th>Country</th><th>Hub type</th></tr><tr><td>København H</td><td>Denmark</td><td>existing hub (urban)</td></tr><tr><td>Lille Europe</td><td>France</td><td>peripheral replacement (urban periphery)</td></tr><tr><td>Reggio Emilia AV Mediopadana</td><td>Italy</td><td>distributed services (urban periphery)</td></tr><tr><td>Stuttgart Hbf</td><td>Germany</td><td>existing hub (urban)</td></tr></table><p>Installing a new high-speed rail (HSR) hub in an area has the potential to boost residential development nearby, though the amount and type of development vary considerably by location. This potential is greatest when HSR hubs are established in areas far away from city centers, as these locations tend to have more available land for redevelopment into residential areas.</p>`,
+    question: `Which statement is best supported by information from the text and table?`,
+    options: [
+        {t: "The area around Lille Europe has greater potential for residential development than the area around Reggio Emilia AV Mediopadana does.", c: false, f: "Incorrect. Both are listed as 'urban periphery' (far from center), so the text does not differentiate their potential based on the provided criterion."},
+        {t: "The area around Lille Europe has greater potential for residential development than the area around København H does.", c: true, f: "Correct. The text states potential is greatest in areas 'far away from city centers.' Lille Europe is 'urban periphery' (far away), while København H is 'urban' (city center). Therefore, Lille Europe has greater potential."},
+        {t: "The area around København H has greater potential for residential development than the area around Reggio Emilia AV Mediopadana does.", c: false, f: "Incorrect. København H (urban) would have *less* potential than Reggio Emilia (periphery) according to the text."},
+        {t: "The area around København H has greater potential for residential development than the area around Stuttgart Hbf does.", c: false, f: "Incorrect. Both are 'urban' hubs, so the text provides no basis for claiming one has more potential than the other."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 14
+{
+    passage: `<p>Providence, Rhode Island, has installed shoreline-hardening structures—mainly breakwalls—along 62% of its shoreline to protect infrastructure from sea-level rise and other hazards. To evaluate the responses of waterbirds at sites in the Chesapeake Bay on the US East Coast to shoreline hardening and other landscape alterations, Diann Prosser et al. surveyed waterbird communities consisting of sixty-four species, including the brown pelican and the red knot. Utilizing the Index of Waterbird Community Integrity (IWCI), on which a low score corresponds to low community integrity, the researchers concluded that shoreline hardening more negatively affects waterbirds than does land development for uses such as housing or agriculture.</p>`,
+    question: `Which finding, if true, would most directly challenge the researchers' conclusion?`,
+    options: [
+        {t: "Waterbird communities at Margothy, a site with a relatively low percentage of developed land and a relatively high percentage of hardened shoreline, had lower average IWCI scores than did waterbird communities at Back River, a site with a higher percentage of developed land and a lower percentage of hardened shoreline.", c: false, f: "Incorrect. This supports the conclusion by showing high hardening correlates with lower scores (worse integrity)."},
+        {t: "Waterbird communities at Stony and Curtis, two sites with relatively high percentages of developed land and hardened shoreline, had similar IWCI scores, whereas waterbird communities at Ware and Honga, two sites with relatively low percentages of developed land and hardened shoreline, had widely differing IWCI scores.", c: false, f: "Incorrect. This information is inconclusive."},
+        {t: "Waterbird communities at Old Road, a site with a relatively high percentage of developed land and hardened shoreline, had lower average IWCI scores than did waterbird communities at Onancock, a site with a relatively low percentage of developed land and hardened shoreline.", c: false, f: "Incorrect. Comparisons of overall intensity don't isolate the variables needed."},
+        {t: "Waterbird communities at Mill, a site with a relatively low percentage of developed land and a relatively high percentage of hardened shoreline, had higher average IWCI scores than did waterbird communities at Langford, a site with a higher percentage of developed land and a lower percentage of hardened shoreline.", c: true, f: "Correct. The conclusion states hardening is worse (lower score) than development. This option shows a hardened site (Mill) with a *higher* score than a developed site (Langford), contradicting the researchers' conclusion."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 15
+{
+    passage: `<p><em>Memoirs of Elleanor Eldridge</em> is an 1838 historical account by Elleanor Eldridge and Frances Harriet Whipple Green. In the book, the authors suggest that many memoirs of renowned people aren't particularly straightforward or candid, writing, ______</p>`,
+    question: `Which quotation from <em>Memoirs of Elleanor Eldridge</em> most effectively illustrates the claim?`,
+    options: [
+        {t: "\"There is often a kind of [deceptive] light, playing around such [famous] names, calculated to dazzle and mislead, by their false lustre, until the eye can no longer receive the pure light of Truth, or the mind appreciate real excellence, or intrinsic worth.\"", c: true, f: "Correct. The words 'deceptive,' 'mislead,' and 'false lustre' directly illustrate the claim that such memoirs are not straightforward or candid."},
+        {t: "\"It should not be considered essential to the interest and value of biography, that its subject be of exalted rank, or illustrious name.\"", c: false, f: "Incorrect. This quote claims biographies don't need famous subjects, but doesn't address the honesty of the memoirs."},
+        {t: "\"How careful ought we to be to speak nothing but the truth, even in regard to the most trifling circumstances; and not only so, but to be well assured that what we suppose to be true, is truth, before we receive it as such.\"", c: false, f: "Incorrect. This is a general statement about the importance of truth, not a specific critique of the lack of candor in other memoirs."},
+        {t: "\"Blessed are the slumbers of the innocent! They are kindlier than balm, and they refresh and gladden the spirit of childhood, like ministerings from a better world.\"", c: false, f: "Incorrect. This quote discusses innocence and childhood, which is irrelevant to the claim."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 16
+{
+    passage: `<p>The synthesis of novel superheavy elements, such as nihonium (Nh), has led theorists to consider the feasibility of synthesizing all possible chemical compounds. In 2022, Guillermo Restrepo calculated the historical rates at which newly discovered compounds have entered the scientific literature, expanding the "chemical space." <u>Using a conservative estimate of the number of viable compounds and assuming a doubling of the historical pace of discovery, Restrepo found that under these hypothetical conditions, all potential compounds could be synthesized and documented by 2050.</u></p>`,
+    question: `Which choice best describes the function of the underlined portion in the text as a whole?`,
+    options: [
+        {t: "It introduces information that helps explain why the synthesis of superheavy elements has rapidly expanded the chemical space.", c: false, f: "Incorrect. The underlined text is about future calculations, not the cause of past expansion."},
+        {t: "It provides details about the qualification later in the sentence regarding the prospect of cataloging the full range of possible chemical compounds.", c: true, f: "Correct. The phrase 'under these hypothetical conditions' later in the sentence refers back to the assumptions (conservative estimate, doubling pace) detailed in the underlined portion."},
+        {t: "It emphasizes the point implicitly made earlier in the text that human inefficiency is the primary constraint on the expansion of the chemical space.", c: false, f: "Incorrect. The text does not discuss human inefficiency."},
+        {t: "It makes a comparison between the past and current rates at which new chemical compounds have entered the scientific literature.", c: false, f: "Incorrect. While it mentions historical pace, the primary function is to set parameters for a future projection, not to compare past and current rates."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 17
+{
+    passage: `<p>While conducting an interview for her book <em>Latina Authors and Their Muses</em>, editor Mayra Calvani asked Margo Candela, author of the young adult novel <em>The Brenda Diaries</em>, what ______ Candela's response was <em>The Phantom Tollbooth</em> by Norton Juster.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "was her favorite book!", c: false, f: "Incorrect. This word order is for a direct exclamation, not an indirect question."},
+        {t: "was her favorite book?", c: false, f: "Incorrect. Indirect questions do not use question marks or inverted word order."},
+        {t: "her favorite book was.", c: true, f: "Correct. This is an indirect question embedded in a statement ('asked... what her favorite book was'). Standard English requires subject-verb order and a period."},
+        {t: "her favorite book was?", c: false, f: "Incorrect. Indirect questions should end with a period, as the main sentence is a statement."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 18
+{
+    passage: `<p>Following the swing era of the 1930s, cool jazz emerged as yet another innovative style in jazz ______ larger ensembles than those of their predecessors, cool jazz composers like Chico Hamilton emphasized smooth melodies in their works.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "music. Featuring", c: true, f: "Correct. This creates two complete sentences. The second sentence ('Featuring larger ensembles...') correctly uses a participial phrase to modify the subject 'cool jazz composers'."},
+        {t: "music, featuring", c: false, f: "Incorrect. This would attach the modifier to the previous clause about the emergence of cool jazz, which is less logical than attaching it to the composers who are the subject of the next clause."},
+        {t: "music, to feature", c: false, f: "Incorrect. This creates a grammatically awkward structure."},
+        {t: "music to feature", c: false, f: "Incorrect. This creates a run-on or fragment depending on how it's parsed."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 19
+{
+    passage: `<p>In Puerto Rico, it's not unusual for a city or town to be known by a nickname that corresponds to one of its notable features, like landscape, ______ or chief exports. For example, the Puerto Rican municipality of Corozal has also been called "the Cradle of Volleyball," a nickname that alludes to what the area is well known for: being a longtime volleyball powerhouse.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "climate famous residents,", c: false, f: "Incorrect. Commas are missing between items in the list."},
+        {t: "climate famous residents", c: false, f: "Incorrect. Missing punctuation."},
+        {t: "climate, famous residents,", c: true, f: "Correct. The sentence lists features: 'landscape, climate, famous residents, or chief exports.' Commas are required to separate these items."},
+        {t: "climate; famous residents;", c: false, f: "Incorrect. Semicolons are used for lists where items contain commas, which is not the case here."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 20
+{
+    passage: `<p>Many places in the United States share a name with a foreign city or country. When founding the city of Warsaw, Indiana, residents decided to name ______ after the Polish city of Warsaw.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "them", c: false, f: "Incorrect. 'Them' is plural, but the city is singular."},
+        {t: "it", c: true, f: "Correct. 'It' is the correct singular pronoun to refer to 'the city'."},
+        {t: "that", c: false, f: "Incorrect. 'That' is a demonstrative pronoun, not the personal pronoun required here."},
+        {t: "us", c: false, f: "Incorrect. The residents named the city, not themselves."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 21
+{
+    passage: `<p>New Mexico governor ______ the first woman to serve in that role in the state's history—took office on January 1, 2011.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "Susana Martinez:", c: false, f: "Incorrect. A colon cannot pair with a dash to set off an appositive."},
+        {t: "Susana Martinez", c: false, f: "Incorrect. Punctuation is needed to mark the beginning of the nonessential appositive phrase."},
+        {t: "Susana Martinez,", c: false, f: "Incorrect. A comma cannot be paired with a dash. The punctuation marks must match."},
+        {t: "Susana Martinez—", c: true, f: "Correct. The appositive phrase ('the first woman to serve...') ends with a dash, so it must also begin with a dash."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 22
+{
+    passage: `<p>Jean-Michel Basquiat was an American artist who produced more than two thousand ______ His work <em>Self-Portrait</em> was completed in 1981 and sold at auction in 2016 for $4.7 million.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "drawing's and painting's.", c: false, f: "Incorrect. Apostrophes indicate possession, which is not needed here."},
+        {t: "drawings and painting's.", c: false, f: "Incorrect. Inconsistent and incorrect use of apostrophe."},
+        {t: "drawings and paintings.", c: true, f: "Correct. The sentence requires simple plural nouns."},
+        {t: "drawings' and paintings'.", c: false, f: "Incorrect. Indicates plural possession, which is not needed."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 23
+{
+    passage: `<p>At the Ruskin School of Acting in Santa Monica, California, students can learn the world-famous Meisner technique. ______ by acting teacher Sanford Meisner, this technique trains actors to react naturally to the other performers in a scene.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "Develops", c: false, f: "Incorrect. This creates a grammatical error."},
+        {t: "Developing", c: false, f: "Incorrect. This would create a misplaced modifier."},
+        {t: "Develop", c: false, f: "Incorrect. This is the wrong verb form."},
+        {t: "Developed", c: true, f: "Correct. 'Developed' correctly begins a participial phrase ('Developed by acting teacher Sanford Meisner') that modifies 'this technique'."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 24
+{
+    passage: `<p>Generally, sleek vehicles are more aerodynamic than bulkier ones. The streamlined nose of the F-104 Starfighter jet, ______ helps it glide through wind with relative ease, while a boxy pickup truck encounters more wind resistance, making it less aerodynamic.</p>`,
+    question: `Which choice completes the text with the most logical transition?`,
+    options: [
+        {t: "however,", c: false, f: "Incorrect. 'However' signals contrast, but the F-104 is an example that supports the general statement."},
+        {t: "meanwhile,", c: false, f: "Incorrect. 'Meanwhile' signals a simultaneous event, not an example."},
+        {t: "for instance,", c: true, f: "Correct. The F-104 is a specific example of the 'sleek vehicles' mentioned in the previous sentence. 'For instance' correctly introduces this example."},
+        {t: "additionally,", c: false, f: "Incorrect. 'Additionally' adds a new point, but this text is providing an example of the existing point."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 25
+{
+    passage: `<p>When ordering the branches of the Yukon River system by Hack's method, one begins with the riverway's lowest point, the Yukon River. ______ when using Strahler's method, one begins at the top of the river system, with the Kanuti River and other tributaries fed by the riverway's source, Alaska's Llewellyn Glacier.</p>`,
+    question: `Which choice completes the text with the most logical transition?`,
+    options: [
+        {t: "Indeed,", c: false, f: "Incorrect. 'Indeed' emphasizes the previous point, but the text is contrasting two different methods."},
+        {t: "Specifically,", c: false, f: "Incorrect. The second sentence is not a specific detail of the first."},
+        {t: "Alternatively,", c: true, f: "Correct. The text contrasts Hack's method (lowest point) with Strahler's method (top/source). 'Alternatively' correctly signals this shift to a different method."},
+        {t: "In other words,", c: false, f: "Incorrect. The second sentence does not restate the first; it describes a different process."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 26
+{
+    passage: `<p>As volcanologists like Tamsin Mather are apt to make clear, not all volcanoes are the same. Agua de Pau in the Azores Islands, for example, is a stratovolcano, a conical volcano built up by many layers of hardened lava and tephra. Methana in Greece, ______ is a lava dome, a circular mound-shaped protrusion resulting from the slow extrusion of viscous lava from a volcano.</p>`,
+    question: `Which choice completes the text with the most logical transition?`,
+    options: [
+        {t: "in any case,", c: false, f: "Incorrect. This transitions to a summary, not a contrasting example."},
+        {t: "in conclusion,", c: false, f: "Incorrect. This is not a concluding statement."},
+        {t: "in contrast,", c: true, f: "Correct. The text compares Agua de Pau (stratovolcano) with Methana (lava dome), highlighting their differences. 'In contrast' fits this comparison."},
+        {t: "in fact,", c: false, f: "Incorrect. 'In fact' emphasizes a point, but the primary relationship here is contrast."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 27
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p>
+    <ul>
+        <li>• The cuneiform script is the earliest known set of symbols used for writing.</li>
+        <li>• Sumerian was one of the first languages to be written using the cuneiform script.</li>
+        <li>• Sumerian was a language in ancient Mesopotamia (present-day Iraq).</li>
+        <li>• Clay tablets with Sumerian writing have been found there.</li>
+        <li>• Some of these tablets are almost 5,000 years old.</li>
+    </ul>`,
+    question: `The student wants to identify a language that was written using the cuneiform script. Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {
+            t: "Examples of Mesopotamian writing that are nearly 5,000 years old have been found.",
+            c: false,
+            f: "Incorrect. This mentions the writing but fails to identify the specific language."
+        },
+        {
+            t: "Clay tablets with cuneiform script have been found in present-day Iraq.",
+            c: false,
+            f: "Incorrect. This mentions the script and location but does not name the language."
+        },
+        {
+            t: "A language in ancient Mesopotamia used the cuneiform script for writing.",
+            c: false,
+            f: "Incorrect. This refers to 'a language' vaguely without identifying it as Sumerian."
+        },
+        {
+            t: "Sumerian, an ancient Mesopotamian language, was written using the cuneiform script.",
+            c: true,
+            f: "Correct. This choice explicitly names 'Sumerian' as the language and links it to the 'cuneiform script,' directly fulfilling the goal."
+        }
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+}
+];
+const rw2 = [
+    // 27 easy RW2 questions (made-up for this example)
+    // Question 1
+{
+    passage: `<p>"Bien Pretty" is an English-language short story by Sandra Cisneros that often includes Spanish words and phrases. In <em>Their Dogs Came with Them</em>, Helena María Viramontes frequently ______ Spanish text as well. But readers who are unfamiliar with Spanish can easily read both works since the meaning of the Spanish text can be inferred from the surrounding English text.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "suspects", c: false, f: "Incorrect. There is no context suggesting suspicion regarding the text."},
+        {t: "relaxes", c: false, f: "Incorrect. 'Relaxes' does not make sense in the context of including text in a book."},
+        {t: "loses", c: false, f: "Incorrect. The text implies the Spanish words are present and understandable, not lost."},
+        {t: "uses", c: true, f: "Correct. The text compares Viramontes to Cisneros (who 'includes' Spanish words), stating Viramontes does this 'as well'. 'Uses' is the most logical synonym for includes/employs in this context."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 2
+{
+    passage: `<p>One reasonable way to evaluate the ______ of a scholar's research is to track how often other scholars refer to that research. For example, Princeton University economist Anne Case, who studies labor and health economics, is among the world's most frequently cited researchers in her specialty, indicating that her work has had a significant effect on the field.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "expense", c: false, f: "Incorrect. The cost of research is not related to how often it is cited."},
+        {t: "unity", c: false, f: "Incorrect. 'Unity' does not fit the context of evaluating research influence."},
+        {t: "complexity", c: false, f: "Incorrect. While research may be complex, citations are a measure of influence or effect, not necessarily complexity."},
+        {t: "impact", c: true, f: "Correct. The text connects the frequency of citations to the work having a 'significant effect on the field.' 'Impact' allows for this evaluation of effect/influence."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 3
+{
+    passage: `<p>Featuring contributions from Zulema Valdez, Robert W. Fairlie, and other scholars, <em>Advancing U.S. Latino Entrepreneurship</em> (2020) is intended to ______ two kinds of readers. According to Jerry I. Porras and the book's other editors, it should be of interest to researchers as well as current and aspiring entrepreneurs.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "detract from", c: false, f: "Incorrect. The editors would not intend for the book to take away from readers."},
+        {t: "evaluate", c: false, f: "Incorrect. The book is intended to be read by them, not to evaluate them."},
+        {t: "appeal to", c: true, f: "Correct. The text states the book 'should be of interest to' these groups. 'Appeal to' matches this meaning."},
+        {t: "bewilder", c: false, f: "Incorrect. 'Bewilder' means to confuse, which is not the intended goal of the book."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 4
+{
+    passage: `<p>The Apollo Moon landings (1969–1972) brought magnetic field sensors and soil sensors to the Moon and produced large amounts of data, much of which was stored on technologies that are now obsolete. A data-transfer project is working to ______ these data so that the information is available to researcher Noah Petro, who is investigating the geology of the Moon.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "amend", c: false, f: "Incorrect. 'Amend' means to change or modify. The goal is to make the existing data available, not change it."},
+        {t: "salvage", c: true, f: "Correct. 'Salvage' means to rescue or recover. Since the data is on 'obsolete' technology, the project is recovering it for use."},
+        {t: "simplify", c: false, f: "Incorrect. The text does not suggest the data needs simplification, but rather transfer from old media."},
+        {t: "improve", c: false, f: "Incorrect. The focus is on access/recovery, not enhancing the quality of the original data."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 5
+{
+    passage: `<p>Smart watches and wireless speakers tend to rely on batteries that can't be easily taken out and swapped for new ones. Environmental policy researcher Jessika Richter warns that because these gadgets can't ______ without working batteries, once the batteries stop working, the devices are typically disposed of as trash.</p>`,
+    question: `Which choice completes the text with the most logical and precise word or phrase?`,
+    options: [
+        {t: "decide", c: false, f: "Incorrect. Gadgets do not 'decide'."},
+        {t: "separate", c: false, f: "Incorrect. This doesn't fit the context of the device's operation."},
+        {t: "expand", c: false, f: "Incorrect. Expansion is not the issue described."},
+        {t: "function", c: true, f: "Correct. The devices cannot operate or 'function' without power. If the battery dies and can't be replaced, the device ceases to work."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 6
+{
+    passage: `<p>Mariana Lopes Barata and Pedro Simões Coelho collected data from 324 music-streaming service users to identify factors that influence users to opt for paid (premium) versions of music streaming services, like Apple Music. They found that performance expectancy (how much the use of a service is perceived to benefit the consumer) is positively correlated with users' intentions to adopt premium versions. They also found that users' intentions to purchase a premium service positively influence their intentions to recommend the premium service to others, which suggests that ______</p>`,
+    question: `Which choice most logically completes the text?`,
+    options: [
+        {t: "by encouraging existing users of premium services to recommend those services to nonusers, music streaming companies may be able to increase the extent to which their existing users perceive the use of the premium version to be beneficial.", c: false, f: "Incorrect. The causality in the text is the reverse: perceived benefit -> intention to purchase -> intention to recommend. Recommending doesn't necessarily increase the perceived benefit for the *recommender*."},
+        {t: "users' intentions to pay for premium streaming services are probably unaffected by factors other than performance expectancy.", c: false, f: "Incorrect. The study identified performance expectancy as *a* factor, not the *only* factor."},
+        {t: "if music streaming companies can increase the degree to which some potential users perceive the use of the premium version to be beneficial, they may be able to generate interest in their premium services from other potential users that they have not reached directly.", c: true, f: "Correct. The chain of logic is: Increase perceived benefit -> Increases intention to purchase -> Increases intention to recommend -> Reaches others. Thus, increasing perceived benefit can eventually lead to generating interest from others via recommendations."},
+        {t: "participants who strongly agreed with the statement \"Overall, a paid music streaming service is advantageous\" were more likely to express loyalty to Apple Music than to other streaming services.", c: false, f: "Incorrect. The text is about premium services in general, not loyalty specifically to Apple Music vs others."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 7
+{
+    passage: `<p><em>The Man-Made World: Or, Our Androcentric Culture</em> is a 1911 nonfiction work by Charlotte Perkins Gilman. In the text, the author emphasizes the importance of cultivating individuals rather than comparing them: ______</p>`,
+    question: `Which quotation from <em>The Man-Made World: Or, Our Androcentric Culture</em> most effectively illustrates the claim?`,
+    options: [
+        {t: "\"We do not sadly measure the cabbage-stalk by the corn-stalk, and praise the corn for getting ahead of the cabbage—nor incite the cabbage to [imitate] the corn. We nourish both, to its best growth—and are the richer.\"", c: true, f: "Correct. This quote explicitly argues against comparing different things ('measure the cabbage-stalk by the corn-stalk') and argues for cultivating each ('nourish both, to its best growth')."},
+        {t: "\"We have but to learn the real elements in humanity; its true powers and natural characteristics.\"", c: false, f: "Incorrect. This discusses learning humanity's nature, not the specific idea of not comparing individuals."},
+        {t: "\"What is [the family's] rational development in humanness; in mechanical, mental and social lines.\"", c: false, f: "Incorrect. This focuses on development in general terms, not the comparison/cultivation distinction."},
+        {t: "\"That every child on earth shall have right conditions to make the best growth possible to it; that every citizen, from birth to death, shall have a chance to learn all he or she can [absorb], to develop every power that is in them.\"", c: false, f: "Incorrect. While this mentions development/growth, it doesn't contain the contrast with 'comparing' that the claim highlights. Choice A is more precise."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 8
+{
+    passage: `<p>High-speed rail systems—in which trains can move at great speeds—are expanding in many countries because high-speed rail can reduce the number of automobiles on the road and ultimately conserve energy. In Austria, for instance, 254 kilometers of high-speed rail lines are in operation as of 2023, and 231 kilometers are under construction.</p>`,
+    question: `Based on the text, why might Austria be expanding its high-speed rail system?`,
+    options: [
+        {t: "Residents of Austria demand that high-speed rail be expanded despite the cost of doing so.", c: false, f: "Incorrect. The text does not mention resident demands or costs."},
+        {t: "High-speed rail systems in Austria are currently viewed more favorably than they have been in the past.", c: false, f: "Incorrect. The text does not discuss public opinion history."},
+        {t: "The current high-speed rail systems in Austria are getting older and need improvements.", c: false, f: "Incorrect. The text discusses expansion, not aging infrastructure repairs."},
+        {t: "High-speed rail systems are a more energy-efficient choice for residents of Austria than automobile use is.", c: true, f: "Correct. The text states high-speed rail expands 'because... [it] can reduce the number of automobiles... and ultimately conserve energy.' This implies energy efficiency is the reason."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 9
+{
+    passage: `<p>What is a city? The answer depends on where you live! Many countries define an area as a city based on how many people live there. However, not every country uses the same numbers. Greenland defines a city as an area with a population of at least 200, while Switzerland defines a city as having a minimum population of 10,000. Some countries even define cities using other factors, like if there is a local government.</p>`,
+    question: `Which choice best describes the overall structure of the text?`,
+    options: [
+        {t: "It poses a question, then explains why the question has many answers.", c: true, f: "Correct. The text starts with 'What is a city?' and then explains that definitions vary ('has many answers') by country and criteria."},
+        {t: "It offers a recommendation, then provides reasons for that recommendation.", c: false, f: "Incorrect. It does not recommend a definition."},
+        {t: "It describes two locations, then explains why only one of the locations is considered a city.", c: false, f: "Incorrect. It uses Greenland and Switzerland as examples of *different* definitions, not to exclude one."},
+        {t: "It lists the number of cities in one country, then compares that number to the number of cities in another country.", c: false, f: "Incorrect. It compares the *definition criteria* (population size), not the total count of cities."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 10
+{
+    passage: `<p>Researchers who study olfaction—the sense of smell—define valence as a person's perception of how pleasant an odor is. Conventional wisdom holds that valence is culturally mediated. A team of scientists led by Artin Arshamian evaluated this view by testing how people from ten different places—including the Mah Meri people from a small community in the Malay Peninsula and the Seri people from a small community in Mexico—ranked ten odors from most pleasant to least pleasant. In general, respondents ranked scents similarly regardless of where they lived, overwhelmingly choosing the odorant linalool as more pleasant than diethyl disulfide. These results show that ______</p>`,
+    question: `Which choice most logically completes the text?`,
+    options: [
+        {t: "the conventional belief that odor pleasantness can be objectively measured is questionable.", c: false, f: "Incorrect. The results suggest it *can* be measured similarly across cultures, supporting objectivity, not questioning it."},
+        {t: "the standard view of culture's role in olfactory valence may be unsound.", c: true, f: "Correct. The 'conventional wisdom' was that valence is 'culturally mediated' (determined by culture). The results showed people ranked scents similarly *regardless* of culture. Thus, the view that culture plays a major role is unsound."},
+        {t: "the respondents agreed more often on unpleasant odors than they did on pleasant ones.", c: false, f: "Incorrect. The text says they ranked scents 'similarly' in general, not specifying a difference between pleasant and unpleasant agreement."},
+        {t: "valence may affect cultural traditions more strongly than researchers had previously predicted.", c: false, f: "Incorrect. The study looked at how culture affects valence, not how valence affects culture."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 11
+{
+    passage: `<p><strong>Text 1</strong><br>From the extinct Shasta ground sloth to the living Hoffmann's two-toed sloth, sloths are among the most appealing animals native to the Americas. But scientists still have a lot to learn about them. Unlike their ancient ground-dwelling relations, today's sloths spend most of their time high up in trees. The sloths' inaccessibility has made it hard for scientists to study them.<br><br><strong>Text 2</strong><br>By using a hat-like monitor, biologist Bryson Voirin and colleagues can at last discover the previously hidden activities of sloths. Such monitors can provide information to correct misconceptions. It was long believed that sloths are very gentle. But, in fact, sloths have very sharp claws and will attack if threatened.</p>`,
+    question: `Based on the texts, the author of Text 1 and the author of Text 2 would most likely agree with which statement about sloths?`,
+    options: [
+        {t: "Sloths typically live very long lives.", c: false, f: "Incorrect. Neither text discusses lifespan."},
+        {t: "Sloths have been challenging to observe.", c: true, f: "Correct. Text 1 says 'inaccessibility has made it hard for scientists to study them.' Text 2 says the new monitors help discover 'previously hidden activities,' implying they were hard to observe before."},
+        {t: "Sloths are usually unpleasant animals.", c: false, f: "Incorrect. Text 1 calls them 'appealing.' Text 2 says they can attack, but doesn't generalize them as unpleasant."},
+        {t: "Sloths prefer certain types of trees over other types.", c: false, f: "Incorrect. Neither text discusses tree preference."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 12
+{
+    passage: `<p><strong>Examples of Hoards Found in Ireland and Northern Ireland</strong></p><table><tr><th>Hoard name</th><th>Year of discovery</th><th>Date of contents</th><th>Description</th></tr><tr><td>Coggalbeg Hoard</td><td>1945</td><td>24th–19th century BCE</td><td>gold pieces</td></tr><tr><td>Balline Hoard</td><td>1940</td><td>4th century CE</td><td>silver pieces</td></tr><tr><td>Ardagh Hoard</td><td>1868</td><td>10th century CE</td><td>silver and bronze pieces</td></tr></table><p>An anthropologist is recording the metal contents of various historical deposits of valuables, called hoards, found in Ireland and Northern Ireland. She notes that the hoards differed in their contents; for example, ______</p>`,
+    question: `Which choice most effectively uses data from the table to complete the statement?`,
+    options: [
+        {t: "the Balline Hoard and the Ardagh Hoard each contained bronze.", c: false, f: "Incorrect. Balline contained 'silver pieces', not bronze."},
+        {t: "the Coggalbeg Hoard was the only hoard that contained just gold.", c: true, f: "Correct. Coggalbeg is listed as 'gold pieces'. Balline is 'silver', Ardagh is 'silver and bronze'. Thus, Coggalbeg is the only one with just gold."},
+        {t: "the Coggalbeg Hoard contained no gold or silver.", c: false, f: "Incorrect. It contained gold."},
+        {t: "the Ardagh Hoard was the only hoard that contained silver.", c: false, f: "Incorrect. The Balline Hoard also contained silver."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 13
+{
+    passage: `
+    <div style="width: 324px; margin: 0 auto;">
+  <h3 class="text-center font-bold" style="font-family: 'Times New Roman', serif; line-height: 1.2; font-size: 16px; margin-bottom: 0;">
+    Volcanoes Active since 1800 and<br>since 1960 in Two Countries
+  </h3>
+  
+  <svg viewBox="0 90 400 360" class="w-full border border-gray-200 bg-white p-2 rounded-lg" style="font-family: 'Times New Roman', serif;">
+    
+    <g stroke="black" stroke-width="1">
+        <line x1="60" y1="100" x2="380" y2="100"></line>
+        <line x1="60" y1="140" x2="380" y2="140"></line>
+        <line x1="60" y1="180" x2="380" y2="180"></line>
+        <line x1="60" y1="220" x2="380" y2="220"></line>
+        <line x1="60" y1="260" x2="380" y2="260"></line>
+        <line x1="60" y1="300" x2="380" y2="300"></line>
+    </g>
+
+    <line x1="60" y1="100" x2="60" y2="300" stroke="black" stroke-width="1"></line>
+
+    <g font-size="14" fill="#000000" text-anchor="end" font-family="'Times New Roman', serif">
+        <text x="55" y="104">10</text>
+        <text x="55" y="144">8</text>
+        <text x="55" y="184">6</text>
+        <text x="55" y="224">4</text>
+        <text x="55" y="264">2</text>
+        <text x="55" y="304">0</text>
+    </g>
+
+    <text x="-200" y="20" transform="rotate(-90)" text-anchor="middle" font-size="16" fill="#000000" font-family="'Times New Roman', serif" font-weight="bold">Number of active volcanoes</text>
+
+    <rect x="100" y="120" width="40" height="180" fill="#a9a9a9" stroke="black" stroke-width="1"></rect>
+    <rect x="140" y="260" width="40" height="40" fill="black" stroke="black" stroke-width="1"></rect>
+
+    <rect x="220" y="140" width="40" height="160" fill="#a9a9a9" stroke="black" stroke-width="1"></rect>
+    <rect x="260" y="280" width="40" height="20" fill="black" stroke="black" stroke-width="1"></rect>
+
+    <g font-size="16" fill="#000000" font-family="'Times New Roman', serif" text-anchor="end" font-weight="bold">
+        <text transform="translate(140, 310) rotate(-45)">active since 1800</text>
+        <text transform="translate(260, 310) rotate(-45)">active since 1960</text>
+    </g>
+
+    <text x="220" y="390" text-anchor="middle" font-size="14" fill="#000000" font-family="'Times New Roman', serif" font-weight="bold">Year</text>
+
+    <g transform="translate(120, 410)" font-family="'Times New Roman', serif" font-size="14">
+        <rect x="0" y="0" width="200" height="30" fill="white" stroke="black" stroke-width="1"></rect>
+        
+        <rect x="10" y="8" width="12" height="12" fill="#a9a9a9" stroke="black" stroke-width="1"></rect>
+        <text x="28" y="19" fill="black" font-weight="bold">Vanuatu</text>
+        
+        <rect x="100" y="8" width="12" height="12" fill="black" stroke="black" stroke-width="1"></rect>
+        <text x="118" y="19" fill="black" font-weight="bold">Eritrea</text>
+    </g>
+  </svg>
+</div>
+    <p>A student is collecting data about countries with volcanoes that have been active in the time since 1800 and in the time since 1960. The student records that Eritrea has ______</p>`,
+    question: `Which choice most effectively uses data from the graph to complete the statement?`,
+    options: [
+        {t: "no volcanoes that have been active since 1800.", c: false, f: "Incorrect. Eritrea has approx 2 active since 1800."},
+        {t: "more volcanoes that have been active since 1960 than Vanuatu has.", c: false, f: "Incorrect. Eritrea (1) has fewer than Vanuatu (8)."},
+        {t: "fewer volcanoes that have been active since 1960 than Vanuatu has.", c: true, f: "Correct. Eritrea has approx 1, while Vanuatu has approx 8."},
+        {t: "the same number of volcanoes that have been active since 1800 as Vanuatu has.", c: false, f: "Incorrect. Eritrea (2) is not the same as Vanuatu (9)."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 14
+{
+    passage: `<p>Many ranching terms come from Spanish. For example, the word "mustang" (a horse) comes from the Spanish word <em>mesteñas</em>, and "hackamore" (a halter) ______ <em>jáquima</em>. This is because the first Anglo, African, and Native American cattle ranchers in the southwestern US learned the trade from Spanish-speaking Mexican vaqueros, or cowboys.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "had come", c: false, f: "Incorrect. Wrong tense."},
+        {t: "comes", c: true, f: "Correct. The sentence structure requires a parallel verb to the first clause ('mustang... comes from'). Though 'from' is missing in the text options or implied, 'comes' is the only grammatically consistent verb form (present tense, singular) to match 'comes'."},
+        {t: "will come", c: false, f: "Incorrect. Wrong tense."},
+        {t: "will be coming", c: false, f: "Incorrect. Wrong tense."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 15
+{
+    passage: `<p>Nicknamed "The Borinqueneers," the US Army's 65th Infantry Regiment has a membership that has included Colonel Juan Cordero Dávila, Sergeant First Class Felix Nieves, and thousands of other Puerto Rican servicepeople. In 2016, these soldiers were honored for ______ historic service when President Barack Obama awarded the 65th Infantry Regiment with the Congressional Gold Medal.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "their", c: true, f: "Correct. 'Soldiers' is plural, so the possessive pronoun must be 'their'."},
+        {t: "there", c: false, f: "Incorrect. 'There' is an adverb of place, not a possessive pronoun."},
+        {t: "it's", c: false, f: "Incorrect. 'It's' is a contraction for 'it is', and 'it' is singular."},
+        {t: "its", c: false, f: "Incorrect. 'Its' is singular, but the antecedent 'soldiers' is plural."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 16
+{
+    passage: `<p>One example of public art (art that's readily accessible to the general public) ______ the work <em>First Generation</em>. This sculpture is installed in a public square in Boat Quay, Singapore.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "being", c: false, f: "Incorrect. 'Being' creates a fragment."},
+        {t: "were", c: false, f: "Incorrect. 'Were' is plural, but the subject 'One example' is singular."},
+        {t: "are", c: false, f: "Incorrect. 'Are' is plural."},
+        {t: "is", c: true, f: "Correct. 'One example' is a singular subject, requiring the singular verb 'is'."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 17
+{
+    passage: `<p>In 1979, the suffragist Susan B. Anthony ______ the first woman featured on a US coin. Her image appeared on the $1 coin.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "became", c: true, f: "Correct. The sentence describes a past event (1979). 'Became' is the correct past tense verb."},
+        {t: "having become", c: false, f: "Incorrect. Creates a fragment."},
+        {t: "becoming", c: false, f: "Incorrect. Creates a fragment."},
+        {t: "to become", c: false, f: "Incorrect. Creates a fragment."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 18
+{
+    passage: `<p>Sarah Vibbart of Massachusetts and Annie Godbe of Utah were leaders of the National Woman Suffrage Association in the late 1800s. Today, both of these women ______ remembered for their fierce advocacy of women's voting rights.</p>`,
+    question: `Which choice completes the text so that it conforms to the conventions of Standard English?`,
+    options: [
+        {t: "was", c: false, f: "Incorrect. 'Was' is singular."},
+        {t: "is", c: false, f: "Incorrect. 'Is' is singular."},
+        {t: "being", c: false, f: "Incorrect. Creates a fragment."},
+        {t: "are", c: true, f: "Correct. The subject 'both of these women' is plural, so the plural verb 'are' is required."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 19
+{
+    passage: `<p>Formerly known as the Southwest Territory, Tennessee was granted statehood by a vote of the US Congress on June 1, 1796, making Tennessee the 16th US state. By comparison, as one of the nation's original thirteen colonies, Delaware became a state when it ratified the US Constitution on December 7, 1787. ______ New York attained statehood by ratifying the Constitution, becoming the 11th US state on July 26, 1788.</p>`,
+    question: `Which choice completes the text with the most logical transition?`,
+    options: [
+        {t: "Therefore,", c: false, f: "Incorrect. New York's statehood is not a result of Delaware's."},
+        {t: "Nevertheless,", c: false, f: "Incorrect. There is no contrast between Delaware and New York here."},
+        {t: "For example,", c: false, f: "Incorrect. New York is not an example of Delaware."},
+        {t: "Likewise,", c: true, f: "Correct. The text compares the process of Tennessee (territory) to the original colonies. After mentioning Delaware (an original colony), it mentions New York (another original colony) following a similar path (ratifying the Constitution). 'Likewise' indicates this similarity."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 20
+{
+    passage: `<p>Thousands of years ago, the Olmec civilization's reign over parts of eastern Mexico ended. ______ the Olmecs' massive stone statues of human heads remain. Two of these statues, known as Monument 2 and Monument 53, weigh over 5 tons!</p>`,
+    question: `Which choice completes the text with the most logical transition?`,
+    options: [
+        {t: "Therefore,", c: false, f: "Incorrect. The statues remaining is not a result of the civilization ending."},
+        {t: "Secondly,", c: false, f: "Incorrect. There is no list being enumerated."},
+        {t: "Still,", c: true, f: "Correct. The transition highlights the contrast between the civilization ending long ago and the statues remaining today. 'Still' (meaning 'nevertheless' or 'even so') captures this persistence."},
+        {t: "Previously,", c: false, f: "Incorrect. The remaining statues are a present state, not a previous one relative to the ending."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 21
+{
+    passage: `<p>Scientists studying forest restoration have discovered that trees depend on complex partnerships with microscopic organisms for survival. The researchers found that special fungi called endophytes live inside tree leaves and serve as a defense mechanism. ______ these endophytes help by fighting off diseases and boosting the tree's immune system.</p>`,
+    question: `Which choice completes the text with the most logical transition?`,
+    options: [
+        {t: "Alternatively,", c: false, f: "Incorrect. The next sentence details the mechanism, not an alternative."},
+        {t: "Nevertheless,", c: false, f: "Incorrect. There is no contrast."},
+        {t: "Specifically,", c: true, f: "Correct. The first sentence states they serve as a 'defense mechanism'. The second sentence explains *how* they defend (fighting diseases, boosting immune system). 'Specifically' introduces this detailed elaboration."},
+        {t: "In conclusion,", c: false, f: "Incorrect. This is not a summary."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 22
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p><ul><li>• A nonnative species is considered invasive if it causes environmental or economic harm in an ecosystem.</li><li>• Curly pondweed is a species of aquatic plant native to parts of Eurasia.</li><li>• It can also be found in the northern and western US.</li><li>• There, it crowds out native plants and impedes aquatic recreation.</li><li>• It is considered an invasive species in the US.</li></ul>`,
+    question: `The student wants to provide an example of an invasive species. Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {t: "In the northern and western US, curly pondweed is an invasive aquatic plant that crowds out native plants and impedes aquatic recreation.", c: true, f: "Correct. This choice names the species (curly pondweed), identifies it as invasive, and explains why (crowds out plants/impedes recreation), fulfilling the goal."},
+        {t: "One way a nonnative species of plant could cause harm in an ecosystem is by crowding out native plants and impeding aquatic recreation.", c: false, f: "Incorrect. This explains the mechanism but does not provide a specific example."},
+        {t: "A nonnative species that crowds out native plants and impedes aquatic recreation, causing environmental or economic harm, is considered invasive.", c: false, f: "Incorrect. This is a definition, not an example."},
+        {t: "Curly pondweed is an example of an invasive species that causes environmental or economic harm in parts of Eurasia.", c: false, f: "Incorrect. The notes say it is native to Eurasia and invasive in the US."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 23
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p><ul>
+        <li>• Kale is a vegetable that contains ascorbic acid, an essential nutrient for humans.</li>
+        <li>• Every 100 grams (g) of kale contains 120 milligrams (mg) of ascorbic acid.</li>
+        <li>• Many animals can make ascorbic acid in their bodies, but humans cannot.</li>
+        <li>• Humans must get ascorbic acid from foods, including fruits and vegetables.</li>
+        <li>• Ascorbic acid is also known as vitamin C.</li></ul>`,
+    question: `The student wants to specify how much vitamin C is in kale. Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {t: "There is 120 mg of vitamin C in every 100 g of kale.", c: true, f: "Correct. This directly answers the request to specify the amount."},
+        {t: "Kale contains vitamin C, which humans must get from food.", c: false, f: "Incorrect. Does not specify the amount."},
+        {t: "Many animals can make ascorbic acid, which is also known as vitamin C, in their bodies, but humans cannot.", c: false, f: "Incorrect. Does not mention kale or the amount."},
+        {t: "Since humans cannot make vitamin C in their bodies, they must get this essential nutrient from foods like kale.", c: false, f: "Incorrect. Does not specify the amount."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 24
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p><ul>
+        <li>• The Purús River is in South America.</li>
+        <li>• It is the fifth longest river in South America.</li>
+        <li>• It crosses the countries Peru and Brazil.</li>
+        <li>• It ranks No. 22 among the longest rivers in the world.</li>
+        <li>• It is 3,211 kilometers long.</li></ul>`,
+    question: `The student wants to specify how many kilometers long the Purús River is. Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {t: "The Purús River in South America is 3,211 kilometers long.", c: true, f: "Correct. This directly provides the length in kilometers."},
+        {t: "The Purús River crosses both Peru and Brazil in South America.", c: false, f: "Incorrect. Does not mention length."},
+        {t: "The fifth longest river in South America, the Purús River crosses both Peru and Brazil.", c: false, f: "Incorrect. Does not mention length in km."},
+        {t: "Among the longest rivers in the world, the Purús River ranks No. 22.", c: false, f: "Incorrect. Mentions rank, not length."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 25
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p><ul>
+        <li>• The poem "4 haiku (for Max Roach)" is by African American writer Sonia Sanchez.</li>
+        <li>• It was published in her 2010 poetry book entitled <em>Morning Haiku</em>.</li>
+        <li>• The poem is written as a sequence of four haiku.</li>
+        <li>• According to the book's publisher, Penguin Random House (PRH), the book "celebrates the gifts of life and mourns the deaths of revered African American figures."</li>
+        <li>• According to Sanchez, she chose to write in the form of haiku because it helps "maintain memory and dignity."</li></ul>`,
+    question: `The student wants to describe the format of "4 haiku (for Max Roach)." Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {t: "The poem \"4 haiku (for Max Roach)\" is written as a sequence of four haiku.", c: true, f: "Correct. This choice directly describes the poem's format."},
+        {t: "The poem \"4 haiku (for Max Roach)\" was published in the 2010 book Morning Haiku, which \"celebrates the gifts of life and mourns the deaths of revered African American figures.\"", c: false, f: "Incorrect. Describes publication and theme, not format."},
+        {t: "Sanchez chose the form used in the poem \"4 haiku (for Max Roach)\" because it helps \"maintain memory and dignity.\"", c: false, f: "Incorrect. Explains *why* the form was chosen, but doesn't explicitly describe what the form *is*."},
+        {t: "The poems in Morning Haiku (2010) are each written as a sequence of haiku.", c: false, f: "Incorrect. Generalizes to the whole book, which may not be accurate based on the notes (notes only specify this poem)."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 26
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p><ul>
+        <li>• The Great Salt Lake in Utah is one of the world's saltiest bodies of water.</li>
+        <li>• The northern portion of the lake has a higher concentration of salt than the southern portion.</li>
+        <li>• Aquatic insects called <em>Ephydra cinerea</em> live in the southern portion.</li>
+        <li>• Bacteria called <em>Achromobacter</em> live in the southern portion.</li></ul>`,
+    question: `The student wants to emphasize a difference between <em>Ephydra cinerea</em> and <em>Achromobacter</em>. Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {t: "Ephydra cinerea and Achromobacter are different types of organisms: Ephydra cinerea are aquatic insects, whereas Achromobacter are bacteria.", c: true, f: "Correct. This explicitly contrasts their biological classification (insect vs bacteria)."},
+        {t: "The northern portion of the Great Salt Lake has a higher concentration of salt than does the southern portion.", c: false, f: "Incorrect. Irrelevant to the organisms."},
+        {t: "Ephydra cinerea and Achromobacter both live in the Great Salt Lake's southern portion.", c: false, f: "Incorrect. Highlights similarity, not difference."},
+        {t: "Ephydra cinerea are aquatic insects that live in the southern portion of the Great Salt Lake.", c: false, f: "Incorrect. Describes one organism, does not mention the other for contrast."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+},
+// Question 27
+{
+    passage: `<p>While researching a topic, a student has taken the following notes:</p><ul>
+        <li>• Louis Ballard was a classical composer and citizen of the Quapaw Tribe.</li>
+        <li>• His works blend Western classical music with elements of various Native musical traditions.</li>
+        <li>• His 1970 composition <em>Cacéga Ayuwípi</em> incorporates a Pueblo water drum, a traditional Native instrument.</li>
+        <li>• Critic Peter Altman commended Ballard's ability to synthesize "strong, idiomatically modern expressions."</li></ul>`,
+    question: `The student wants to present Altman's claim to an audience already familiar with Louis Ballard. Which choice most effectively uses relevant information from the notes to accomplish this goal?`,
+    options: [
+        {t: "Ballard was commended for his musical compositions, many of which blend Western classical music with elements of various Native musical traditions, by the critic Peter Altman.", c: false, f: "Incorrect. Includes background info (blending traditions) unnecessary for a familiar audience."},
+        {t: "Ballard's works demonstrate what Peter Altman refers to as an ability to synthesize \"strong, idiomatically modern expressions.\"", c: true, f: "Correct. This focuses directly on Altman's specific claim/quote without rehashing basic biographical details."},
+        {t: "Peter Altman praised Ballard—a classical composer whose works blend Western classical music with elements of Native musical traditions—for creating \"strong, idiomatically modern expressions.\"", c: false, f: "Incorrect. Includes biographical definition of Ballard."},
+        {t: "Ballard's 1970 Cacéga Ayuwípi blends Western classical music and elements of various Native musical traditions by incorporating a Pueblo water drum.", c: false, f: "Incorrect. Does not mention Altman's claim."}
+    ],
+    userAns: null,
+    strikes: [false, false, false, false],
+    marked: false,
+    userState: null
+}
+];
+const rwHardModule2 = rw2;
+
+function gen(count, prefix) {
+    return Array.from({length: count}, (_, i) => ({
+        passage: `<p>Passage for ${prefix} Q${i+1}. Highlight this text to test tools.</p>`,
+        question: "Select the correct answer.",
+        options: [
+            {t:"Correct", c:true, f:"Good job."},
+            {t:"Wrong A", c:false, f:"Not the best choice."},
+            {t:"Wrong B", c:false, f:"Not supported."},
+            {t:"Wrong C", c:false, f:"Off-topic."}
+        ],
+        userAns: null,
+        strikes: [false,false,false,false],
+        marked: false,
+        userState: null
+    }));
+}
+
+const DATA = {
+    rw1: rw1, // 27 real questions
+    rw2_easy: rw2,
+    rw2_hard: rwHardModule2,
+    math1: gen(22, "Math M1"),
+    math2_easy: gen(22, "Math M2 Easy"),
+    math2_hard: gen(22, "Math M2 Hard")
+};
+/* -------------------- CUSTOM FREE-RESPONSE MATH QUESTIONS -------------------- */
+/* Convert a few Math questions to free-response types */
+
+DATA.math1[0] = {
+    type: 'fr',
+    passage: `
+        <p class="mb-4">
+            On a number line, the point representing <em>x</em> is 3 units to the right of 2.
+            What is the value of <em>x</em>?
+        </p>
+    `,
+    question: "Enter your answer as an integer.",
+    correctAnswer: "5",
+    explanation: "If a point is 3 units to the right of 2, then x = 2 + 3 = 5.",
+    userAnswer: "",
+    strikes: [],
+    marked: false,
+    userState: null,
+    options: [] // keep for safety
+};
+
+DATA.math1[1] = {
+    type: 'fr',
+    passage: `
+        <p class="mb-4">
+            A rectangle has a width of 4 units and a length that is 3 times the width.
+            What is the <strong>perimeter</strong> of the rectangle, in units?
+        </p>
+    `,
+    question: "Enter your answer as an integer.",
+    correctAnswer: "32",
+    explanation: "Length = 3×4 = 12, so P = 2(4 + 12) = 32.",
+    userAnswer: "",
+    strikes: [],
+    marked: false,
+    userState: null,
+    options: []
+};
+
+DATA.math2_easy[0] = {
+    type: 'fr',
+    passage: `
+        <p class="mb-4">
+            If 3x + 2 = 17, what is the value of <em>x</em>?
+        </p>
+    `,
+    question: "Enter your answer as an integer.",
+    correctAnswer: "5",
+    explanation: "3x + 2 = 17 ⇒ 3x = 15 ⇒ x = 5.",
+    userAnswer: "",
+    strikes: [],
+    marked: false,
+    userState: null,
+    options: []
+};
+
+DATA.math2_hard[0] = {
+    type: 'fr',
+    passage: `
+        <p class="mb-4">
+            A line has slope <span class="font-mono">2</span> and passes through the point (1, 3).
+            What is the <strong>y-intercept</strong> of the line?
+        </p>
+    `,
+    question: "Enter your answer as an integer.",
+    correctAnswer: "1",
+    explanation: "Use y = mx + b: 3 = 2(1) + b ⇒ b = 1.",
+    userAnswer: "",
+    strikes: [],
+    marked: false,
+    userState: null,
+    options: []
+};
+
+
+const STATE = {
+    section: 'RW',
+    module: 1,
+    questions: [],
+    idx: 0,
+    timer: 32 * 60,
+    interval: null,
+    timerHidden: false,
+    scores: { rwRouting:'Hard', mathRouting:'Hard' },
+    review: false
+};
+/* -------------------- QUESTION HELPERS (MCQ + FREE RESPONSE) -------------------- */
+/* -------------------- FREE RESPONSE FORMAT VALIDATION (SAT GRID-IN STYLE) -------------------- */
+/*
+  Rules implemented:
+  - Up to 5 characters for positive answers
+  - Up to 6 characters (including '-') for negative answers
+  - Only digits, one optional decimal point, one optional slash, and optional leading minus
+  - No symbols like %, comma, or dollar sign
+  - If too long, tell student to convert/round according to SAT rules
+*/
+/* -------------------- FREE RESPONSE FORMAT VALIDATION (SAT GRID-IN STYLE) -------------------- */
+/*
+   Implements these rules:
+
+   - If you find more than one correct answer, enter only ONE answer.
+     → We enforce “one number only”: no spaces between numbers.
+
+   - You can enter up to 5 characters for a positive answer and up to 6 characters
+     (including the negative sign) for a negative answer.
+
+   - If your answer is a fraction that doesn’t fit, enter the decimal equivalent.
+   - If your answer is a decimal that doesn’t fit, truncate or round at the fourth digit.
+     → We don’t auto-round; we just warn when it’s too long.
+
+   - If your answer is a mixed number (such as 3 1/2), enter it as an improper
+     fraction (7/2) or decimal equivalent (3.5).
+     → Any space inside the answer is treated as invalid.
+
+   - Don’t enter symbols such as a percent sign, comma, or dollar sign.
+*/
+
+function validateGridInAnswer(raw) {
+    const value = raw.trim();
+
+    // Blank is allowed (treated as unanswered, not a format error)
+    if (value === "") {
+        return { valid: true, normalized: "", message: "" };
+    }
+
+    // No spaces: avoids "3 1/2", "1 2/3", or multiple answers separated by spaces
+    if (/\s/.test(value)) {
+        return {
+            valid: false,
+            normalized: value,
+            message:
+                "Enter only one number with no spaces. For mixed numbers like 3 1/2, use 7/2 or 3.5 instead."
+        };
+    }
+
+    // Disallow %, comma, dollar, etc.
+    if (/[%,$]/.test(value)) {
+        return {
+            valid: false,
+            normalized: value,
+            message:
+                "Don’t include symbols such as %, comma, or $ in your answer."
+        };
+    }
+
+    // Only digits, optional decimal point, optional slash, optional minus sign
+    if (/[^0-9.\-\/]/.test(value)) {
+        return {
+            valid: false,
+            normalized: value,
+            message:
+                "Use only digits, a decimal point, a slash (/), or a minus sign."
+        };
+    }
+
+    // Minus sign: at most one, and only at the very beginning
+    const minusCount = (value.match(/-/g) || []).length;
+    if (minusCount > 1 || (minusCount === 1 && !value.startsWith("-"))) {
+        return {
+            valid: false,
+            normalized: value,
+            message:
+                "Place a single minus sign at the start for negative answers only."
+        };
+    }
+
+    const hasDot = value.includes(".");
+    const hasSlash = value.includes("/");
+
+    // You can use EITHER decimal OR fraction, not both
+    if (hasDot && hasSlash) {
+        return {
+            valid: false,
+            normalized: value,
+            message:
+                "Write your answer as either a decimal OR a fraction, not both."
+        };
+    }
+
+    // Identify and validate the specific format
+    if (hasSlash) {
+        // Fraction: -a/b or a/b
+        const fracPattern = /^-?\d+\/\d+$/;
+        if (!fracPattern.test(value)) {
+            return {
+                valid: false,
+                normalized: value,
+                message:
+                    "Write fractions in the form a/b using only digits, like 7/2 or -1/3."
+            };
+        }
+    } else if (hasDot) {
+        // Decimal: -d.dd, d.dd, .dd, or - .dd (no leading +)
+        const decPattern = /^-?(?:\d+\.\d+|\.\d+)$/;
+        if (!decPattern.test(value)) {
+            return {
+                valid: false,
+                normalized: value,
+                message:
+                    "Write decimals with digits and one decimal point, like 3.5, 0.25, or .25."
+            };
+        }
+    } else {
+        // Integer: -d or d
+        const intPattern = /^-?\d+$/;
+        if (!intPattern.test(value)) {
+            return {
+                valid: false,
+                normalized: value,
+                message:
+                    "Enter a whole number, decimal, or fraction in the allowed format."
+            };
+        }
+    }
+
+    // Character length limits
+    const isNegative = value.startsWith("-");
+    const maxLen = isNegative ? 6 : 5;
+
+    if (value.length > maxLen) {
+        return {
+            valid: false,
+            normalized: value,
+            message: isNegative
+                ? "Your answer is too long for a negative number. Use at most 6 characters (including the minus sign). If it’s a fraction or long decimal, write a decimal equivalent and truncate or round at the fourth digit."
+                : "Your answer is too long. Use at most 5 characters for a positive answer. If it’s a fraction or long decimal, write a decimal equivalent and truncate or round at the fourth digit."
+        };
+    }
+
+    // Passed all format checks
+    return {
+        valid: true,
+        normalized: value,
+        message: ""
+    };
+}
+
+function isCorrect(q) {
+    // Free-response question
+    if (q.type === 'fr') {
+        if (!q.correctAnswer) return false;
+        if (!q.userAnswer) return false;
+        const norm = (v) => String(v).trim().replace(/\s+/g, '');
+        return norm(q.userAnswer) === norm(q.correctAnswer);
+    }
+
+    // Multiple-choice (existing behavior)
+    if (!q.options || q.userAns == null) return false;
+    return !!q.options[q.userAns]?.c;
+}
+
+function isAnswered(q) {
+    if (q.type === 'fr') {
+        return q.userAnswer != null && String(q.userAnswer).trim() !== '';
+    }
+    return q.userAns != null;
+}
+
+/* -------------------- DOM SHORTCUTS -------------------- */
+const $ = (id) => document.getElementById(id);
+const els = {
+    passage: $('passage-text'),
+    question: $('question-text'),
+    options: $('options-list'),
+    qNum: $('q-num'),
+    timer: $('timer'),
+    timerBox: $('timer-box'),
+    navModal: $('nav-modal'),
+    modal: $('results-modal')
+};
+
+const notesRail = $('notes-rail');
+const passageWrapper = $('passage-wrapper');
+
+const highlightBtn = $('highlight-btn');
+const highlightTooltip = $('highlight-mode-tooltip');
+const textToolbar = $('text-selection-toolbar');
+
+/* -------------------- HIGHLIGHT & NOTES STATE -------------------- */
+let isHighlightMode = false;
+let currentActiveSpan = null;
+let isRailOpen = false;
+// NEW: suppress answer click right after a highlight inside an option
+let suppressNextOptionClick = false;
+/* --- NEW: Turn annotation UI on/off depending on section --- */
+function updateAnnotationUI(isMathView) {
+    const isRWView = !isMathView;
+
+    // Header "Highlights & Notes" button
+    if (highlightBtn) {
+        // show only for RW
+        highlightBtn.style.display = isRWView ? 'flex' : 'none';
+        // ensure visual state is off when switching sections
+        highlightBtn.classList.remove('active');
+    }
+
+    // Header "Show Notes" button
+    const notesBtn = $('notes-rail-main-toggle');
+    if (notesBtn) {
+        notesBtn.style.display = isRWView ? 'inline-flex' : 'none';
+    }
+
+    if (!isRWView) {
+        // Math view: disable all annotation behavior & close rail
+        isHighlightMode = false;
+        textToolbar.classList.add('hidden');
+        notesRail.classList.remove('open');
+        isRailOpen = false;
+
+        // Hide side rail toggle as well
+        const railToggleEl = $('rail-toggle');
+        if (railToggleEl) railToggleEl.style.display = 'none';
+    }
+}
+/* -------------------- LAYOUT SWITCHER FOR MATH MCQ / FR -------------------- */
+function updateLayoutForQuestion(q, isMathView) {
+    const leftPanel  = $('left-panel');
+    const rightPanel = $('right-panel');
+    const resizer    = $('resizer');
+    const main       = $('main-content');
+
+    if (!leftPanel || !rightPanel || !resizer || !main) return;
+
+    if (isMathView) {
+        if (q.type === 'fr') {
+            // MATH FREE-RESPONSE: split view (directions left, question right)
+            leftPanel.style.display  = 'flex';
+            rightPanel.style.display = 'flex';
+            leftPanel.style.width    = '50%';
+            rightPanel.style.width   = '50%';
+            rightPanel.classList.remove('mcq-centered');
+
+            if (window.innerWidth > 768) {
+                resizer.style.display = 'flex';
+                resizer.style.left    = '50%';
+            } else {
+                resizer.style.display = 'none';
+            }
+        } else {
+            // MATH MCQ: single column (right panel only, centered block)
+            leftPanel.style.display  = 'none';
+            rightPanel.style.display = 'flex';
+            rightPanel.style.width   = '100%';
+            rightPanel.classList.add('mcq-centered');
+            resizer.style.display    = 'none';
+        }
+    } else {
+        // READING & WRITING (or any non-Math): normal 2-panel passage + questions
+        leftPanel.style.display  = 'flex';
+        rightPanel.style.display = 'flex';
+        leftPanel.style.width    = '';
+        rightPanel.style.width   = '';
+        rightPanel.classList.remove('mcq-centered');
+
+        if (window.innerWidth > 768) {
+            resizer.style.display = 'flex';
+        } else {
+            resizer.style.display = 'none';
+        }
+    }
+}
+
+/* -------------------- CORE TEST LOGIC -------------------- */
+function init() {
+    // Check if there is a saved session
+    const hasSave = loadProgress();
+
+    if (hasSave) {
+        // Ask user if they want to resume
+        const resume = confirm("We found an unfinished test session. Do you want to continue where you left off?");
+        if (!resume) {
+            // User wants to start over, so we reset data
+            clearProgress();
+            // Reload page to ensure fresh start, or manually reset DATA here
+            // Simple way:
+            location.reload(); 
+            return; 
+        } else {
+            // Resume: STATE and DATA are already loaded by loadProgress()
+            // Just need to restart the UI
+            $('section-name').textContent = STATE.section === 'Math' ? 'Math' : 'Reading and Writing';
+            $('module-name').textContent = `Module ${STATE.module}`;
+            if (STATE.section === 'Math') $('tools-math').classList.remove('hidden');
+        }
+    } else {
+        // No save found, start fresh
+        STATE.questions = DATA.rw1;
+    }
+
+    renderQuestion(STATE.idx);
+    startTimer();
+    if (window.innerWidth > 768) initResizing();
+}
+
+function nav(dir) {
+    saveState(); // Capture current notes/html
+    
+    // --- NEW: Save to Local Storage ---
+    saveProgress(); 
+    // ----------------------------------
+
+    const nextIdx = STATE.idx + dir;
+    if (nextIdx >= 0 && nextIdx < STATE.questions.length) {
+        renderQuestion(nextIdx);
+    } else if (dir === 1) {
+        if (STATE.review) {
+            alert("Review complete.");
+            return;
+        }
+        nextStage();
+    }
+}
+
+function nextStage() {
+    clearInterval(STATE.interval);
+    if (STATE.section === 'RW' && STATE.module === 1) {
+        const correct = STATE.questions.filter(isCorrect).length;
+        STATE.scores.rwRouting = correct >= 14 ? 'Hard' : 'Easy';
+        STATE.questions = correct >= 14 ? DATA.rw2_hard : DATA.rw2_easy;
+        STATE.module = 2; STATE.idx = 0; STATE.timer = 32 * 60;
+        alert("RW Module 1 Complete. Moving to Module 2.");
+    } else if (STATE.section === 'RW' && STATE.module === 2) {
+        STATE.section = 'Math';
+        STATE.module = 1;
+        STATE.questions = DATA.math1;
+        STATE.idx = 0;
+        STATE.timer = 35 * 60;
+        $('section-name').textContent = "Math";
+        $('tools-math').classList.remove('hidden');
+        alert("RW Section Complete. Moving to Math.");
+    } else if (STATE.section === 'Math' && STATE.module === 1) {
+        const correct = STATE.questions.filter(isCorrect).length;
+        STATE.scores.mathRouting = correct >= 11 ? 'Hard' : 'Easy';
+        STATE.questions = correct >= 11 ? DATA.math2_hard : DATA.math2_easy;
+        STATE.module = 2; STATE.idx = 0; STATE.timer = 35 * 60;
+        alert("Math Module 1 Complete. Moving to Module 2.");
+    } else {
+        finishTest();
+        return;
+    }
+    $('module-name').textContent = `Module ${STATE.module}`;
+    renderQuestion(0);
+    startTimer();
+}
+
+/* -------------------- SAVE & RESTORE -------------------- */
+function saveState() {
+    const q = STATE.questions[STATE.idx];
+
+    const notesMap = {};
+    document.querySelectorAll('.note-card').forEach(card => {
+        const textarea = card.querySelector('textarea');
+        if (card.id && textarea) {
+            notesMap[card.id] = textarea.value;
+        }
+    });
+
+    // Capture free-response input, if any
+    const frInput = document.getElementById('fr-input');
+    const frAnswer = frInput ? frInput.value : (q.userAnswer || '');
+
+    q.userState = {
+        passageHtml: els.passage.innerHTML,
+        optionsHtml: els.options.innerHTML,
+        notes: notesMap,
+        railOpenState: isRailOpen,
+        frAnswer: frAnswer
+    };
+
+    if (q.type === 'fr') {
+        q.userAnswer = frAnswer;
+    }
+}
+
+function restoreNotesFromContainer(container, notesData) {
+    let foundNotes = false;
+    const noteSpans = container.querySelectorAll('span[data-note-id]');
+    noteSpans.forEach(span => {
+        const noteId = span.getAttribute('data-note-id');
+        const content = (notesData && notesData[noteId]) ? notesData[noteId] : "";
+        createVisualNote(span, noteId, content);
+        foundNotes = true;
+    });
+    return foundNotes;
+}
+
+/* Attach events to option boxes + strike buttons even when we restore from saved HTML */
+function attachOptionHandlers(q, questionIndex) {
+    const rows = els.options.querySelectorAll('.option-row');
+    rows.forEach((row, idx) => {
+        const box = row.querySelector('.option-box');
+        const strikeBtn = row.querySelector('.strike-btn');
+
+        if (box) {
+            box.onclick = (e) => {
+                if (STATE.review) return;
+                if (e.target.classList.contains('strike-btn')) return;
+
+                // Still keep this: ignore the first click after a highlight inside options
+                if (suppressNextOptionClick) {
+                    suppressNextOptionClick = false;
+                    return;
+                }
+
+                q.userAns = idx;
+
+                // 🔹 NEW: capture current highlights & notes before re-render
+                saveState();
+                saveProgress();
+
+                renderQuestion(questionIndex);
+            };
+        }
+
+        if (strikeBtn && !STATE.review) {
+            strikeBtn.onclick = (e) => toggleStrike(idx, e);
+        }
+    });
+}
+function renderFreeResponseQuestion(q, i) {
+    els.options.innerHTML = '';
+
+    const container = document.createElement('div');
+    container.className = 'space-y-4';
+
+    // 🔹 No helper box here anymore – only the input + preview
+
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'mt-2';
+
+    const errorMsg = document.createElement('p');
+    errorMsg.className = 'mt-1 text-xs text-red-600 hidden';
+    errorMsg.id = 'fr-error';
+
+    const preview = document.createElement('p');
+    preview.id = 'fr-preview';
+    preview.className = 'mt-4 text-base font-semibold';
+    const setPreview = (text) => {
+        const content = (text && String(text).trim() !== '') ? text : '—';
+        preview.innerHTML = `Answer Preview: <span class="font-mono">${content}</span>`;
+    };
+
+    if (!STATE.review) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'fr-input';
+        input.autocomplete = 'off';
+        input.className = 'w-40 border-2 border-gray-300 rounded-lg px-4 py-2 text-lg font-mono focus:outline-none focus:border-blue-500';
+
+        // Restore any saved answer
+        const saved = (q.userAnswer || (q.userState && q.userState.frAnswer) || '');
+        input.value = saved;
+        q.userAnswer = saved;
+
+        const runValidation = () => {
+            const result = validateGridInAnswer(input.value);
+            q.userAnswer = result.normalized;
+            setPreview(result.normalized);
+
+            if (!result.valid) {
+                input.classList.remove('border-gray-300', 'border-blue-500');
+                input.classList.add('border-red-500');
+                errorMsg.textContent = result.message;
+                errorMsg.classList.remove('hidden');
+            } else {
+                input.classList.remove('border-red-500');
+                input.classList.add('border-gray-300');
+                errorMsg.classList.add('hidden');
+                errorMsg.textContent = '';
+            }
+        };
+
+        input.addEventListener('input', runValidation);
+        input.addEventListener('blur', runValidation);
+
+        // Initial state
+        setPreview(saved);
+        runValidation();
+
+        inputWrapper.appendChild(input);
+        inputWrapper.appendChild(preview);
+        inputWrapper.appendChild(errorMsg);
+    } else {
+        // REVIEW MODE: show student's answer and the correct one
+        const yourAns = document.createElement('div');
+        yourAns.className = 'mb-3 p-3 rounded-lg bg-gray-50 border border-gray-200';
+        yourAns.innerHTML = `
+            <div class="font-semibold mb-1">Your answer:</div>
+            <div class="font-mono text-lg">
+                ${(q.userAnswer && String(q.userAnswer).trim() !== '') ? q.userAnswer : '— no answer —'}
+            </div>
+        `;
+
+        const correctBox = document.createElement('div');
+        const ok = isCorrect(q);
+        correctBox.className = 'p-4 rounded-lg text-sm ' +
+            (ok
+                ? 'bg-green-50 border border-green-200 text-green-800'
+                : 'bg-red-50 border border-red-200 text-red-800');
+
+        correctBox.innerHTML = `
+            <div class="font-bold mb-1">${ok ? 'Correct' : 'Correct Answer'}</div>
+            <div>Correct answer: <span class="font-mono text-base">${q.correctAnswer}</span></div>
+            ${q.explanation ? `<div class="mt-1 text-gray-700">${q.explanation}</div>` : ''}
+        `;
+
+        inputWrapper.appendChild(yourAns);
+        inputWrapper.appendChild(correctBox);
+    }
+
+    container.appendChild(inputWrapper);
+    els.options.appendChild(container);
+}
+
+/* -------------------- MATH FREE-RESPONSE DIRECTIONS CONTENT -------------------- */
+const MATH_FR_DIRECTIONS_HTML = `
+    <div class="max-w-xl mx-auto">
+        <h2 class="text-lg font-bold mb-2">Student-produced response directions</h2>
+        <ul class="list-disc pl-5 mb-4 text-sm leading-relaxed">
+            <li>If you find <strong>more than one correct answer</strong>, enter only one answer.</li>
+            <li>You can enter up to <strong>5 characters</strong> for a positive answer and up to <strong>6 characters</strong> (including the negative sign) for a negative answer.</li>
+            <li>If your answer is a <strong>fraction</strong> that doesn’t fit in the provided space, enter the decimal equivalent.</li>
+            <li>If your answer is a <strong>decimal</strong> that doesn’t fit in the provided space, enter it by truncating or rounding at the fourth digit.</li>
+            <li>If your answer is a <strong>mixed number</strong> (such as 3<span class="align-baseline text-xs">1</span>/<span class="align-baseline text-xs">2</span>), enter it as an improper fraction (7/2) or its decimal equivalent (3.5).</li>
+            <li>Don’t enter <strong>symbols</strong> such as a percent sign, comma, or dollar sign.</li>
+        </ul>
+
+        <div class="mt-4 border border-gray-300 rounded-md overflow-hidden text-sm">
+            <div class="px-3 py-2 font-semibold border-b border-gray-300 text-center">
+                Examples
+            </div>
+            <div class="grid grid-cols-3 text-center">
+                <div class="border-r border-gray-300 px-2 py-3 font-semibold">Answer</div>
+                <div class="border-r border-gray-300 px-2 py-3 font-semibold">Acceptable ways to<br>enter answer</div>
+                <div class="px-2 py-3 font-semibold">Unacceptable:<br>will NOT receive credit</div>
+
+                <div class="border-t border-r border-gray-300 px-2 py-4 align-middle">3.5</div>
+                <div class="border-t border-r border-gray-300 px-2 py-4 text-left space-y-1">
+                    <div>3.5</div>
+                    <div>3.50</div>
+                    <div>7/2</div>
+                </div>
+                <div class="border-t border-gray-300 px-2 py-4 text-left space-y-1">
+                    <div>31/2</div>
+                    <div>3&nbsp;1/2</div>
+                </div>
+
+                <div class="border-t border-r border-gray-300 px-2 py-4 align-middle">2/3</div>
+                <div class="border-t border-r border-gray-300 px-2 py-4 text-left space-y-1">
+                    <div>2/3</div>
+                    <div>.6666</div>
+                    <div>.6667</div>
+                    <div>0.666</div>
+                    <div>0.667</div>
+                </div>
+                <div class="border-t border-gray-300 px-2 py-4 text-left space-y-1">
+                    <div>0.66</div>
+                    <div>.66</div>
+                    <div>0.67</div>
+                    <div>.67</div>
+                </div>
+
+                <div class="border-t border-r border-gray-300 px-2 py-4 align-middle">-1/3</div>
+                <div class="border-t border-r border-gray-300 px-2 py-4 text-left space-y-1">
+                    <div>-1/3</div>
+                    <div>-.3333</div>
+                    <div>-0.333</div>
+                </div>
+                <div class="border-t border-gray-300 px-2 py-4 text-left space-y-1">
+                    <div>-.33</div>
+                    <div>-0.33</div>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+function renderQuestion(i) {
+    STATE.idx = i;
+    const q = STATE.questions[i];
+
+    // Decide whether this is being shown in Math or RW and update UI accordingly
+    const isMathView = STATE.review ? !!q._isMath : (STATE.section === 'Math');
+    updateAnnotationUI(isMathView);
+    updateLayoutForQuestion(q, isMathView);
+
+    // --- UPDATE HEADER LABELS & TOOLS ---
+    if (STATE.review && q._section) {
+        $('section-name').textContent = q._section;
+        $('module-name').textContent  = q._module;
+        if (q._isMath) $('tools-math').classList.remove('hidden');
+        else           $('tools-math').classList.add('hidden');
+    }
+
+    // Reset notes rail content (still needed for RW)
+    notesRail.innerHTML = `
+        <div class="rail-toggle" id="rail-toggle" onclick="toggleNotesRail()">
+            <svg id="rail-icon-open" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <svg id="rail-icon-closed" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </div>`;
+
+    // --- PASSAGE / LEFT-PANEL CONTENT ---
+    if (isMathView && q.type === 'fr') {
+        // For Math free-response: always show the official directions on the left
+        els.passage.innerHTML = MATH_FR_DIRECTIONS_HTML;
+    } else if (q.userState && q.userState.passageHtml) {
+        // Normal restore for RW (and any non-Math)
+        els.passage.innerHTML = q.userState.passageHtml;
+    } else {
+        els.passage.innerHTML = q.passage;
+    }
+
+    // --- RENDER QUESTION TEXT (right panel main stem) ---
+    els.question.innerHTML = q.question;
+
+    // Always left-align the stem (Bluebook-style)
+    els.question.style.textAlign = 'left';
+
+    // --- RENDER OPTIONS / FREE RESPONSE ---
+    els.options.innerHTML = '';
+
+    if (q.type === 'fr') {
+        // Free-response rendering
+        renderFreeResponseQuestion(q, i);
+    } else {
+        // EXISTING MCQ RENDERING (unchanged except wrapped in this else)
+
+        // IF we have saved HTML (and not in review), restore it
+        if (!STATE.review && q.userState && q.userState.optionsHtml) {
+            els.options.innerHTML = q.userState.optionsHtml;
+
+            // --- SYNC VISUALS ---
+            const boxes = els.options.querySelectorAll('.option-box');
+            boxes.forEach((box, idx) => {
+                if (idx === q.userAns) box.classList.add('selected');
+                else box.classList.remove('selected');
+            });
+
+            attachOptionHandlers(q, i);
+        } else {
+            // Fresh MCQ
+            q.options.forEach((opt, idx) => {
+                const row = document.createElement('div');
+                row.className = 'option-row';
+
+                const container = document.createElement('div');
+                container.className = 'option-container';
+
+                let boxClass = `option-box ${q.userAns === idx ? 'selected' : ''} ${q.strikes[idx] ? 'struck' : ''}`;
+                let iconHtml = '';
+
+                if (STATE.review) {
+                    if (opt.c) {
+                        boxClass += ' correct';
+                        iconHtml = `<span class="review-icon text-green-600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Correct Answer</span>`;
+                    } else if (q.userAns === idx) {
+                        boxClass += ' incorrect';
+                        iconHtml = `<span class="review-icon text-red-600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Your Answer</span>`;
+                    }
+                }
+
+                const box = document.createElement('div');
+                box.className = boxClass;
+                box.innerHTML = `
+                    <div class="option-label">${String.fromCharCode(65+idx)}</div>
+                    <div class="option-text flex-grow">${opt.t}</div>
+                    ${iconHtml}
+                `;
+
+                box.onclick = (e) => {
+                    if (STATE.review) return;
+                    if (e.target.classList.contains('strike-btn')) return;
+                    if (suppressNextOptionClick) {
+                        suppressNextOptionClick = false;
+                        return;
+                    }
+                    q.userAns = idx;
+                    saveState();
+                    saveProgress();
+                    renderQuestion(i);
+                };
+
+                container.appendChild(box);
+
+                if (!STATE.review) {
+                    const strikeBtn = document.createElement('button');
+                    strikeBtn.className = 'strike-btn' + (q.strikes[idx] ? ' active' : '');
+                    strikeBtn.textContent = String.fromCharCode(65 + idx);
+                    strikeBtn.onclick = (e) => toggleStrike(idx, e);
+                    container.appendChild(strikeBtn);
+                }
+
+                row.appendChild(container);
+
+                if (STATE.review && (opt.c || (q.userAns === idx && !opt.c))) {
+                    const fb = document.createElement('div');
+                    const isCorrectFb = opt.c;
+                    fb.className = `feedback ${isCorrectFb ? 'correct-fb' : 'incorrect-fb'}`;
+                    const title = isCorrectFb ? "Why this is correct:" : "Why this is incorrect:";
+                    fb.innerHTML = `<strong>${title}</strong> ${opt.f}`;
+                    row.appendChild(fb);
+                }
+
+                els.options.appendChild(row);
+            });
+        }
+    }
+
+        // Restore notes logic (RW only)
+        let passageHasNotes = false;
+        let optionsHasNotes = false;
+
+        if (!isMathView && q.userState) {
+            passageHasNotes = restoreNotesFromContainer(els.passage, q.userState.notes);
+            if (!STATE.review) {
+                optionsHasNotes = restoreNotesFromContainer(els.options, q.userState.notes);
+            }
+            isRailOpen = !!q.userState.railOpenState;
+        } else {
+            isRailOpen = false;
+        }
+
+    const railToggleEl = $('rail-toggle');
+    if (passageHasNotes || optionsHasNotes) {
+        if (railToggleEl) railToggleEl.style.display = 'flex';
+        updateRailUI();
+    } else {
+        if (railToggleEl) railToggleEl.style.display = 'none';
+        notesRail.classList.remove('open');
+        isRailOpen = false;
+    }
+
+    // --- UI sync ---
+    els.qNum.textContent = i + 1;
+    $('footer-idx').textContent = i + 1;
+    $('footer-total').textContent = STATE.questions.length;
+    updateMarkUI();
+
+    $('btn-prev').disabled = i === 0;
+
+    if (STATE.review) {
+        if (i === STATE.questions.length - 1) $('btn-next').textContent = "Exit Review";
+        else $('btn-next').textContent = "Next";
+        $('btn-next').onclick = (i === STATE.questions.length - 1) ? () => location.reload() : () => nav(1);
+    } else {
+        $('btn-next').textContent = (i === STATE.questions.length - 1) ? "Next Module" : "Next";
+        $('btn-next').onclick = () => nav(1);
+    }
+
+    textToolbar.classList.add('hidden');
+}
+
+/* --- FIXED: toggleStrike no longer re-renders the whole question --- */
+function toggleStrike(optIdx, e) {
+    e.stopPropagation();
+    const q = STATE.questions[STATE.idx];
+    q.strikes[optIdx] = !q.strikes[optIdx];
+
+    const rows = els.options.querySelectorAll('.option-row');
+    const row = rows[optIdx];
+    if (!row) return;
+    const box = row.querySelector('.option-box');
+    const strikeBtn = row.querySelector('.strike-btn');
+
+    if (box) {
+        if (q.strikes[optIdx]) box.classList.add('struck');
+        else box.classList.remove('struck');
+    }
+    if (strikeBtn) {
+        if (q.strikes[optIdx]) strikeBtn.classList.add('active');
+        else strikeBtn.classList.remove('active');
+    }
+}
+
+/* -------------------- MARK FOR REVIEW -------------------- */
+function toggleMark() {
+    const q = STATE.questions[STATE.idx];
+    q.marked = !q.marked;
+    updateMarkUI();
+}
+
+function updateMarkUI() {
+    const q = STATE.questions[STATE.idx];
+    const marked = !!q.marked;
+
+    const qNumBox   = els.qNum;
+    const markLabel = document.getElementById('mark-label');
+    const markBtn   = document.getElementById('mark-btn');
+    const markIconOn  = document.getElementById('mark-icon-on');
+    const markIconOff = document.getElementById('mark-icon-off');
+
+    qNumBox.style.backgroundColor = marked ? '#dc2626' : 'black';
+
+    if (markLabel) {
+        markLabel.textContent = marked ? 'Marked for Review' : 'Mark for Review';
+        markLabel.className = marked
+            ? 'text-red-600 font-bold text-xs'
+            : 'text-gray-500 font-medium text-xs';
+    }
+
+    if (markBtn) {
+        markBtn.classList.toggle('text-red-600', marked);
+        markBtn.classList.toggle('text-gray-500', !marked);
+    }
+
+    if (markIconOn && markIconOff) {
+        if (marked) {
+            markIconOn.classList.remove('hidden');
+            markIconOff.classList.add('hidden');
+        } else {
+            markIconOn.classList.add('hidden');
+            markIconOff.classList.remove('hidden');
+        }
+    }
+}
+
+/* -------------------- HIGHLIGHT & NOTES -------------------- */
+
+function updateToolbarState(span) {
+    document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active-ink'));
+    if (!span) return;
+    if (span.classList.contains('hl-yellow')) $('btn-yellow').classList.add('active-ink');
+    if (span.classList.contains('hl-blue')) $('btn-blue').classList.add('active-ink');
+    if (span.classList.contains('hl-pink')) $('btn-pink').classList.add('active-ink');
+}
+
+function positionToolbar(rect) {
+    textToolbar.style.top = `${rect.top + window.scrollY - 60}px`;
+    textToolbar.style.left = `${rect.left + (rect.width / 2) - 120}px`;
+    textToolbar.classList.remove('hidden');
+}
+
+function showToolbarForSpan(span) {
+    const rect = span.getBoundingClientRect();
+    positionToolbar(rect);
+    updateToolbarState(span);
+}
+
+function getNoteColorClass(span) {
+    if (span.classList.contains('hl-yellow')) return '#fef08a';
+    if (span.classList.contains('hl-blue'))   return '#bae6fd';
+    if (span.classList.contains('hl-pink'))   return '#fbcfe8';
+    return '#e5e7eb';
+}
+
+function updateNoteHeaderColor(span, colorHex) {
+    const noteId = span.getAttribute('data-note-id');
+    if (noteId) {
+        const noteCard = document.getElementById(noteId);
+        if (noteCard) {
+            const header = noteCard.querySelector('.note-header');
+            if (header) header.style.backgroundColor = colorHex;
+        }
+    }
+}
+
+window.updateHighlightColor = (className) => {
+    let hexColor = '#e5e7eb';
+    if (className === 'hl-yellow') hexColor = '#fef08a';
+    if (className === 'hl-blue')   hexColor = '#bae6fd';
+    if (className === 'hl-pink')   hexColor = '#fbcfe8';
+
+    if (currentActiveSpan) {
+        currentActiveSpan.classList.remove('hl-yellow', 'hl-blue', 'hl-pink');
+        currentActiveSpan.classList.add(className);
+        updateToolbarState(currentActiveSpan);
+        updateNoteHeaderColor(currentActiveSpan, hexColor);
+    }
+};
+
+window.toggleUnderline = (className) => {
+    const span = currentActiveSpan;
+    if (!span) return;
+    span.classList.remove('ul-solid', 'ul-dashed', 'ul-dotted');
+    if (className !== 'none') {
+        span.classList.add(className);
+    }
+    showToolbarForSpan(span);
+};
+
+window.removeFormat = () => {
+    const target = currentActiveSpan;
+    if (target) {
+        if (target.hasAttribute('data-note-id')) {
+            const noteId = target.getAttribute('data-note-id');
+            const noteCard = document.getElementById(noteId);
+            if (noteCard) noteCard.remove();
+        }
+        target.outerHTML = target.innerHTML;
+        currentActiveSpan = null;
+    }
+    textToolbar.classList.add('hidden');
+    window.getSelection().removeAllRanges();
+};
+
+function createVisualNote(span, noteId, content = "") {
+    const noteCard = document.createElement('div');
+    noteCard.id = noteId;
+    noteCard.className = 'note-card';
+
+    const fullText = span.textContent;
+    const truncatedText = fullText.length > 20 ? fullText.substring(0, 20) + '...' : fullText;
+    const headerColor = getNoteColorClass(span);
+
+    noteCard.innerHTML = `
+        <div class="note-header" style="background-color: ${headerColor};">
+            <span class="note-header-text">${truncatedText}</span>
+            <button class="note-delete-btn" title="Delete Note">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="note-body">
+            <textarea class="note-textarea" placeholder="Type your note here...">${content}</textarea>
+        </div>
+    `;
+
+    notesRail.appendChild(noteCard);
+
+    const deleteBtn = noteCard.querySelector('.note-delete-btn');
+deleteBtn.addEventListener('click', () => {
+    noteCard.remove();
+    span.removeAttribute('data-note-id');
+
+    if (!notesRail.querySelector('.note-card')) {
+        isRailOpen = false;
+    }
+    updateRailUI();
+});
+
+
+    return noteCard;
+}
+
+window.addNote = () => {
+    if (STATE.section !== 'RW') return;
+    const span = currentActiveSpan;
+    if (!span) return;
+
+    const railToggleBtn = $('rail-toggle');
+    if (railToggleBtn) railToggleBtn.style.display = 'flex';
+
+    if (!isRailOpen) {
+        isRailOpen = true;
+        updateRailUI();
+    }
+
+    let noteId = span.getAttribute('data-note-id');
+    if (!noteId) {
+        noteId = 'note-' + Date.now();
+        span.setAttribute('data-note-id', noteId);
+    }
+
+    if (!span.className.match(/hl-(yellow|blue|pink)/)) {
+        span.classList.add('hl-yellow');
+        updateToolbarState(span);
+    }
+
+    const noteCard = createVisualNote(span, noteId);
+    window.getSelection().removeAllRanges();
+    setTimeout(() => {
+        const ta = noteCard.querySelector('textarea');
+        if (ta) ta.focus();
+    }, 300);
+};
+
+function hasAnyNotes() {
+    return !!notesRail.querySelector('.note-card');
+}
+
+function toggleNotesRailFromHeader() {
+    // Always allow open/close; if there are no notes it will just be an empty panel
+    isRailOpen = !isRailOpen;
+    updateRailUI();
+}
+window.toggleNotesRailFromHeader = toggleNotesRailFromHeader;
+
+
+
+function toggleNotesRail() {
+    isRailOpen = !isRailOpen;
+    updateRailUI();
+}
+window.toggleNotesRail = toggleNotesRail;
+
+function updateRailUI() {
+    const rt      = $('rail-toggle');
+    const arrow  = $('rail-arrow');
+
+    // Open/close the rail itself
+    if (isRailOpen) {
+        notesRail.classList.add('open');
+    } else {
+        notesRail.classList.remove('open');
+    }
+
+    // Always show the side handle (so you can open/close anytime)
+    if (rt) {
+        rt.style.display = 'flex';
+    }
+
+    // Update the arrow:
+    // "<" when rail is hidden (click to show)
+    // ">" when rail is open   (click to hide)
+    if (arrow) {
+        arrow.textContent = isRailOpen ? '>' : '<';
+    }
+}
+
+// Highlight button behavior (RW only)
+if (highlightBtn) {
+    highlightBtn.addEventListener('click', () => {
+        if (STATE.section !== 'RW') return;
+        isHighlightMode = !isHighlightMode;
+        if (isHighlightMode) {
+            highlightBtn.classList.add('active');
+            highlightTooltip.style.display = 'block';
+            setTimeout(() => highlightTooltip.style.display = 'none', 5000);
+        } else {
+            highlightBtn.classList.remove('active');
+            highlightTooltip.style.display = 'none';
+            textToolbar.classList.add('hidden');
+            window.getSelection().removeAllRanges();
+        }
+    });
+}
+
+// Mouse up selection handler
+document.addEventListener('mouseup', (e) => {
+    if (!isHighlightMode || STATE.section !== 'RW') return;
+
+    if (textToolbar.contains(e.target) || e.target.closest('.note-card')) return;
+
+    const selection = window.getSelection();
+    const existingSpan = e.target.closest('span[class*="hl-"]');
+
+    if (existingSpan && selection.isCollapsed) {
+        currentActiveSpan = existingSpan;
+        showToolbarForSpan(existingSpan);
+        return;
+    }
+
+    if (selection.toString().length > 0) {
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer.nodeType === 1
+            ? range.commonAncestorContainer
+            : range.commonAncestorContainer.parentNode;
+
+        if (!els.passage.contains(container) &&
+            !els.question.contains(container) &&
+            !els.options.contains(container)) {
+            textToolbar.classList.add('hidden');
+            return;
+        }
+
+        const span = document.createElement('span');
+        span.className = 'hl-yellow';
+        try {
+            range.surroundContents(span);
+            currentActiveSpan = span;
+            showToolbarForSpan(span);
+            window.getSelection().removeAllRanges();
+
+            // 🔹 NEW: if this highlight lives inside the options area,
+            //         skip the *very next* option click so it doesn't
+            //         immediately select the answer & re-render.
+            suppressNextOptionClick = els.options.contains(span);
+        } catch (err) {
+            console.log("Overlap or complex selection, ignored.");
+            textToolbar.classList.add('hidden');
+        }
+    } else {
+        textToolbar.classList.add('hidden');
+    }
+});
+
+/* -------------------- RESIZER -------------------- */
+let isResizing = false;
+function initResizing() {
+    const resizeHandle = $('resizer');
+    if (!resizeHandle) return;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isResizing = true;
+        resizeHandle.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const containerRect = $('main-content').getBoundingClientRect();
+        let mouseX = e.clientX - containerRect.left;
+        let newLeftWidthPercent = (mouseX / containerRect.width) * 100;
+        if (newLeftWidthPercent < 20) newLeftWidthPercent = 20;
+        if (newLeftWidthPercent > 80) newLeftWidthPercent = 80;
+        $('left-panel').style.width = `${newLeftWidthPercent}%`;
+        $('right-panel').style.width = `${100 - newLeftWidthPercent}%`;
+        resizeHandle.style.left = `${newLeftWidthPercent}%`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            resizeHandle.classList.remove('dragging');
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+        }
+    });
+}
+
+/* -------------------- TIMER -------------------- */
+function startTimer() {
+    if (STATE.interval) clearInterval(STATE.interval);
+    STATE.interval = setInterval(() => {
+        STATE.timer--;
+        const m = Math.floor(STATE.timer / 60);
+        const s = STATE.timer % 60;
+        $('timer').textContent = `${m}:${s < 10 ? '0' + s : s}`;
+        if (STATE.timer <= 0) nextStage();
+    }, 1000);
+}
+
+function toggleTimer() {
+    STATE.timerHidden = !STATE.timerHidden;
+    $('timer').style.visibility = STATE.timerHidden ? 'hidden' : 'visible';
+}
+
+/* -------------------- SCORING & REPORT -------------------- */
+function finishTest() {
+    clearInterval(STATE.interval);
+
+    const calcScore = (m1, m2, routing) => {
+    const raw = m1.filter(isCorrect).length + m2.filter(isCorrect).length;
+    const total = m1.length + m2.length;
+    let base = routing === 'Hard' ? 400 : 200;
+    let score = base + Math.round((raw / total) * 400);
+    return Math.min(800, Math.round(score / 10) * 10);
+    };
+
+    const rwScore = calcScore(
+        DATA.rw1,
+        (STATE.scores.rwRouting === 'Hard' ? DATA.rw2_hard : DATA.rw2_easy),
+        STATE.scores.rwRouting
+    );
+    const mathScore = calcScore(
+        DATA.math1,
+        (STATE.scores.mathRouting === 'Hard' ? DATA.math2_hard : DATA.math2_easy),
+        STATE.scores.mathRouting
+    );
+
+    const totalScore = rwScore + mathScore;
+
+    $('score-total').innerText = totalScore;
+    $('score-rw').innerText = rwScore;
+    $('score-math').innerText = mathScore;
+
+    // --- NEW: Save History & Clear Progress ---
+    saveScoreToHistory(totalScore, rwScore, mathScore);
+    clearProgress(); 
+    // ------------------------------------------
+
+    els.modal.classList.add('active');
+    
+    // Optional: Display history in console or add a UI element
+    console.log("Past Scores:", getScoreHistory());
+}
+
+function sendEmail() {
+    const s = $('score-total').innerText;
+    const r = $('score-rw').innerText;
+    const m = $('score-math').innerText;
+    const body = `Digital SAT Results:%0D%0A------------------%0D%0ATotal: ${s}%0D%0ARW: ${r}%0D%0AMath: ${m}`;
+    window.location.href = `mailto:phivan.hust@gmail.com?subject=SAT Results&body=${body}`;
+}
+
+function startReview() {
+    STATE.review = true;
+    els.modal.classList.remove('active'); // Close results screen
+
+    // 1. Determine which modules the user actually took
+    // (Default to 'Hard' if routing is missing, e.g., for testing)
+    const rw2Data = (STATE.scores.rwRouting === 'Easy') ? DATA.rw2_easy : DATA.rw2_hard;
+    const math2Data = (STATE.scores.mathRouting === 'Easy') ? DATA.math2_easy : DATA.math2_hard;
+
+    // 2. Combine ALL questions into one timeline
+    // We map them to add metadata (_section, _module) so the Header updates correctly
+    STATE.questions = [
+        ...DATA.rw1.map(q => ({...q, _section: "Reading and Writing", _module: "Module 1", _isMath: false})),
+        ...rw2Data.map(q => ({...q, _section: "Reading and Writing", _module: "Module 2", _isMath: false})),
+        ...DATA.math1.map(q => ({...q, _section: "Math", _module: "Module 1", _isMath: true})),
+        ...math2Data.map(q => ({...q, _section: "Math", _module: "Module 2", _isMath: true}))
+    ];
+
+    // 3. Reset index to the start of the test
+    STATE.idx = 0;
+    renderQuestion(0);
+}
+
+/* -------------------- QUESTION NAV MODAL -------------------- */
+function toggleNavModal() {
+    const modal = els.navModal;
+    const pill  = document.getElementById('question-pill');
+    const icon  = document.getElementById('question-pill-icon');
+
+    const isOpening = modal.classList.contains('hidden');
+    modal.classList.toggle('hidden');
+
+    // Rotate chevron on the pill
+    if (icon) {
+        icon.classList.toggle('chevron-open', isOpening);
+    }
+
+    // If we’re closing, no need to rebuild the grid
+    if (!isOpening) return;
+
+    /* ---------- Header text: "Section 2, Module 2: Math Questions" ---------- */
+    const titleEl = document.getElementById('nav-section-title');
+    if (titleEl) {
+        let isMath;
+        let moduleNumber;
+
+        if (STATE.review) {
+            const q = STATE.questions[STATE.idx] || STATE.questions[0];
+            isMath = !!q._isMath;
+            // q._module might be like "Module 1", so strip non-digits
+            const m = (q._module || '').match(/\d+/);
+            moduleNumber = m ? m[0] : STATE.module;
+        } else {
+            isMath = (STATE.section === 'Math');
+            moduleNumber = STATE.module;
+        }
+
+        const sectionNumber = isMath ? 2 : 1; // RW = Section 1, Math = Section 2
+        const sectionName   = isMath ? 'Math' : 'Reading & Writing';
+
+        titleEl.textContent = `Section ${sectionNumber}, Module ${moduleNumber}: ${sectionName} Questions`;
+    }
+
+    /* ---------------------- Build the question grid ---------------------- */
+    const grid = document.getElementById('nav-grid');
+    grid.innerHTML = '';
+
+    STATE.questions.forEach((q, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-9 h-9 rounded border text-sm flex items-center justify-center relative';
+
+        const isCurrent = (i === STATE.idx);
+        const isFR      = (q.type === 'fr');
+
+        // ✅ “Answered” logic: MCQ uses userAns, FR uses userAnswer
+        const answered = isFR
+            ? (q.userAnswer != null && String(q.userAnswer).trim() !== '')
+            : (q.userAns !== null && q.userAns !== undefined);
+
+        if (STATE.review) {
+            // Review mode colors
+            let correct;
+            if (isFR) {
+                // free-response uses your existing isCorrect(q) helper
+                correct = typeof isCorrect === 'function' ? isCorrect(q) : false;
+            } else {
+                // multiple-choice
+                correct = q.options && q.options[q.userAns]?.c;
+            }
+
+            if (correct) {
+                btn.classList.add('bg-green-100', 'border-green-500', 'text-green-800', 'font-semibold');
+            } else if (!answered) {
+                btn.classList.add('bg-gray-100', 'border-gray-400', 'text-gray-500');
+            } else {
+                btn.classList.add('bg-red-100', 'border-red-500', 'text-red-700', 'font-semibold');
+            }
+        } else {
+            // Testing mode: current / answered / unanswered
+            if (isCurrent) {
+                btn.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-bold');
+            } else if (answered) {
+                btn.classList.add('border-gray-900', 'bg-gray-900', 'text-white', 'font-semibold');
+            } else {
+                btn.classList.add('border-gray-400', 'border-dashed', 'text-gray-600', 'bg-white');
+            }
+        }
+
+        btn.textContent = i + 1;
+
+        // Marked for review: small red flag
+        if (q.marked) {
+            const mark = document.createElement('span');
+            mark.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                     viewBox="0 0 24 24" fill="red" stroke="red" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a 2 2 0 0 1 2-2h10a 2 2 0 0 1 2 2z"></path>
+                </svg>`;
+            mark.className = 'absolute -top-1 -right-1';
+            btn.appendChild(mark);
+        }
+
+        btn.onclick = () => {
+            saveState();
+            renderQuestion(i);
+            toggleNavModal();
+        };
+
+        grid.appendChild(btn);
+    });
+}
+window.toggleNavModal = toggleNavModal;
+
+/* -------------------- STORAGE LOGIC -------------------- */
+const STORAGE_KEY_PROGRESS = 'sat_app_progress';
+const STORAGE_KEY_HISTORY = 'sat_app_history';
+
+function saveProgress() {
+    // We don't save the interval ID, just the data
+    const payload = {
+        data: DATA,
+        state: {
+            ...STATE,
+            interval: null // Don't save the timer ID
+        },
+        timestamp: new Date().getTime()
+    };
+    localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(payload));
+}
+
+function saveAndExit() {
+    // 1. Force a save immediately
+    saveProgress();
+    
+    // 2. Alert the user
+    alert("Your progress has been saved successfully!\n\nYou can now safely close this browser tab. When you return, the app will ask if you want to resume.");
+    
+    // 3. Optional: Redirect to Google or a homepage to make it feel like "Exiting"
+    // window.location.href = "https://www.google.com"; 
+}
+
+function loadProgress() {
+    const raw = localStorage.getItem(STORAGE_KEY_PROGRESS);
+    if (!raw) return false;
+    
+    try {
+        const saved = JSON.parse(raw);
+        // Restore Data and State
+        Object.assign(DATA, saved.data);
+        Object.assign(STATE, saved.state);
+        
+        // Recalculate if the timer was running, or just resume
+        return true;
+    } catch (e) {
+        console.error("Save file corrupted", e);
+        return false;
+    }
+}
+
+function clearProgress() {
+    localStorage.removeItem(STORAGE_KEY_PROGRESS);
+}
+
+function saveScoreToHistory(total, rw, math) {
+    let history = JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '[]');
+    history.push({
+        date: new Date().toLocaleString(),
+        total: total,
+        rw: rw,
+        math: math
+    });
+    localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history));
+}
+
+function getScoreHistory() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '[]');
+}
+
+function showHistory() {
+    const list = $('history-list');
+    const history = getScoreHistory();
+    
+    if (history.length === 0) {
+        list.innerHTML = '<p class="text-center text-gray-500">No past scores found.</p>';
+    } else {
+        list.innerHTML = history.reverse().map(h => `
+            <div class="flex justify-between border-b border-gray-200 py-2 last:border-0">
+                <span class="text-xs text-gray-500">${h.date.split(',')[0]}</span>
+                <span class="font-bold text-gray-800">${h.total} <span class="text-xs font-normal text-gray-500">(R:${h.rw} M:${h.math})</span></span>
+            </div>
+        `).join('');
+    }
+    list.classList.toggle('hidden');
+}
+/* -------------------- INIT -------------------- */
+init();
+</script>
+
+
+</body>
+</html>
