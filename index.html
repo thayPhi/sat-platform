@@ -550,10 +550,56 @@
         z-index: 300; /* higher than #resizer's 60 and Tailwind's z-50 */
     }
 </style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "XXXX",
+    authDomain: "XXXX",
+    projectId: "XXXX",
+    storageBucket: "XXXX",
+    messagingSenderId: "XXXX",
+    appId: "XXXX"
+  };
+
+  const app = initializeApp(firebaseConfig);
+
+  // ✅ DECLARE ONCE
+  window.auth = getAuth(app);
+  window.db   = getFirestore(app);
+</script>
 
 </head>
 
 <body class="text-gray-900">
+    
+<div id="login-screen"
+  class="fixed inset-0 bg-gray-100 flex items-center justify-center z-[9999]">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
+    <h2 class="text-xl font-bold mb-2">Thầy Phi – The SAT House</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      Enter your email to receive a login link
+    </p>
+
+    <input
+      id="login-email"
+      type="email"
+      placeholder="student@email.com"
+      class="w-full border px-3 py-2 rounded mb-3"
+    />
+
+    <button
+      id="login-btn"
+      class="w-full bg-blue-600 text-white py-2 rounded font-bold"
+    >
+      Send Login Link
+    </button>
+
+    <p id="login-msg" class="text-xs text-gray-500 mt-3"></p>
+  </div>
+</div>
 
     <div id="text-selection-toolbar" class="hidden">
         <button class="toolbar-btn" id="btn-yellow" onclick="updateHighlightColor('hl-yellow')" title="Highlight Yellow">
@@ -3276,8 +3322,64 @@ function showHistory() {
     }
     list.classList.toggle('hidden');
 }
-/* -------------------- INIT -------------------- */
-init();
+</script>
+
+<script type="module">
+  import {
+    sendSignInLinkToEmail,
+    isSignInWithEmailLink,
+    signInWithEmailLink,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+
+  import {
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+  // ✅ DO NOT redeclare
+  const auth = window.auth;
+  const db   = window.db;
+
+  const loginScreen = document.getElementById('login-screen');
+  const loginBtn    = document.getElementById('login-btn');
+  const loginEmail  = document.getElementById('login-email');
+  const loginMsg    = document.getElementById('login-msg');
+
+  loginBtn.onclick = async () => {
+    const email = loginEmail.value.trim();
+    if (!email) return;
+
+    await sendSignInLinkToEmail(auth, email, {
+      url: window.location.href,
+      handleCodeInApp: true
+    });
+
+    localStorage.setItem('tsh_email', email);
+    loginMsg.textContent = "Check your email for the login link.";
+  };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+
+    loginScreen.style.display = 'none';
+
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        email: user.email,
+        role: 'student',
+        createdAt: serverTimestamp()
+      });
+    }
+
+    // ✅ SAFE ENTRY
+    init();
+  });
 </script>
 
 
