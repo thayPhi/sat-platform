@@ -3358,9 +3358,10 @@ function showHistory() {
 
   try {
     await sendSignInLinkToEmail(auth, email, {
-      url: window.location.href,
-      handleCodeInApp: true
+    url: window.location.origin,
+    handleCodeInApp: true
     });
+
 
     localStorage.setItem('tsh_email', email);
     loginMsg.textContent = "✅ Check your email for the login link.";
