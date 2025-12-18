@@ -3349,22 +3349,60 @@ function showHistory() {
   const loginMsg    = document.getElementById('login-msg');
 
   loginBtn.onclick = async () => {
-    const email = loginEmail.value.trim();
-    if (!email) return;
+  const email = loginEmail.value.trim();
+  if (!email) return;
 
+  // 🔒 Disable button immediately
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Sending...";
+
+  try {
     await sendSignInLinkToEmail(auth, email, {
       url: window.location.href,
       handleCodeInApp: true
     });
 
     localStorage.setItem('tsh_email', email);
-    loginMsg.textContent = "Check your email for the login link.";
-  };
+    loginMsg.textContent = "✅ Check your email for the login link.";
+
+  } catch (err) {
+    console.error(err);
+
+    // ❌ Show error to student
+    loginMsg.textContent = "❌ Failed to send login link. Try again.";
+
+    // 🔓 Re-enable button on error
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Send Login Link";
+  }
+};
+
+
+  // 🔑 COMPLETE MAGIC LINK SIGN-IN (CRITICAL)
+if (isSignInWithEmailLink(auth, window.location.href)) {
+  const email = localStorage.getItem('tsh_email');
+  if (!email) {
+    alert("Please re-enter your email to finish signing in.");
+  } else {
+    try {
+      await signInWithEmailLink(auth, email, window.location.href);
+      localStorage.removeItem('tsh_email');
+    } catch (err) {
+      console.error("Magic link sign-in failed", err);
+      alert("Login link expired or invalid. Please try again.");
+    }
+  }
+}
+
 
   onAuthStateChanged(auth, async (user) => {
-    if (!user) return;
+  if (!user) return;
 
-    loginScreen.style.display = 'none';
+  // 🔓 Reset button (good practice)
+  loginBtn.disabled = false;
+  loginBtn.textContent = "Send Login Link";
+
+  loginScreen.style.display = 'none';
 
     const ref = doc(db, 'users', user.uid);
     const snap = await getDoc(ref);
