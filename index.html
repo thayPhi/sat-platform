@@ -3422,10 +3422,33 @@ function showHistory() {
     });
   }
 
-  init();
+  startSATAppSafely();
 });
-</script>
 
+async function startSATAppSafely() {
+  // 1️⃣ Resolve test version FIRST
+  if (!window.currentTest) {
+    window.currentTest = resolveTestFromURL() || resolveTestFromStorage();
+  }
+
+  // 2️⃣ Load questions if needed
+  if (!window.questions || window.questions.length === 0) {
+    if (typeof loadQuestions === "function") {
+      await loadQuestions();
+    }
+  }
+
+  // 3️⃣ Final safety check
+  if (!window.questions || window.questions.length === 0) {
+    alert("Test data failed to load. Please refresh the page.");
+    return;
+  }
+
+  // 4️⃣ NOW it is safe
+  init();
+}
+
+</script>
 
 </body>
 </html>
