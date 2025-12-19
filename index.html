@@ -3381,17 +3381,25 @@ function showHistory() {
 
   // 🔑 COMPLETE MAGIC LINK SIGN-IN (CRITICAL)
 if (isSignInWithEmailLink(auth, window.location.href)) {
-  const email = localStorage.getItem('tsh_email');
+  let email = localStorage.getItem('tsh_email');
+
   if (!email) {
-    alert("Please re-enter your email to finish signing in.");
-  } else {
-    try {
-      await signInWithEmailLink(auth, email, window.location.href);
-      localStorage.removeItem('tsh_email');
-    } catch (err) {
-      console.error("Magic link sign-in failed", err);
-      alert("Login link expired or invalid. Please try again.");
-    }
+    email = prompt(
+      "Please confirm your email address to finish signing in:"
+    );
+  }
+
+  if (!email) {
+    // user cancelled
+    return;
+  }
+
+  try {
+    await signInWithEmailLink(auth, email, window.location.href);
+    localStorage.removeItem('tsh_email');
+  } catch (err) {
+    console.error(err);
+    alert("Sign-in failed. Please request a new login link.");
   }
 }
 
