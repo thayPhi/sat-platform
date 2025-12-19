@@ -2193,7 +2193,7 @@ function init() {
     // Check if there is a saved session
     const hasSave = loadProgress();
 
-    if (hasSave) {
+    if (hasSave && Array.isArray(STATE.questions) && STATE.questions.length > 0) {
         // Ask user if they want to resume
         const resume = confirm("We found an unfinished test session. Do you want to continue where you left off?");
         if (!resume) {
@@ -3430,14 +3430,21 @@ function startSATAppSafely() {
   if (window.__SAT_STARTED__) return;
   window.__SAT_STARTED__ = true;
 
-  // ✅ Your engine uses STATE.questions
-  if (!STATE.questions || STATE.questions.length === 0) {
-    STATE.section = 'RW';
-    STATE.module = 1;
-    STATE.idx = 0;
-    STATE.questions = DATA.rw1; // ← CRITICAL
+  // 🛡️ HARD RESET to a valid starting state
+  STATE.section = 'RW';
+  STATE.module  = 1;
+  STATE.idx     = 0;
+
+  // ✅ ALWAYS inject a valid question set
+  STATE.questions = Array.isArray(DATA.rw1) && DATA.rw1.length
+    ? DATA.rw1
+    : [];
+
+  if (STATE.questions.length === 0) {
+    alert("Question bank failed to load.");
+    return;
   }
-  
+
   init();
 }
 
