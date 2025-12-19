@@ -3425,26 +3425,19 @@ function showHistory() {
   startSATAppSafely();
 });
 
-async function startSATAppSafely() {
-  // 1️⃣ Resolve test version FIRST
-  if (!window.currentTest) {
-    window.currentTest = resolveTestFromURL() || resolveTestFromStorage();
-  }
+function startSATAppSafely() {
+  // 🔒 Prevent double init
+  if (window.__SAT_STARTED__) return;
+  window.__SAT_STARTED__ = true;
 
-  // 2️⃣ Load questions if needed
-  if (!window.questions || window.questions.length === 0) {
-    if (typeof loadQuestions === "function") {
-      await loadQuestions();
-    }
+  // ✅ Your engine uses STATE.questions
+  if (!STATE.questions || STATE.questions.length === 0) {
+    STATE.section = 'RW';
+    STATE.module = 1;
+    STATE.idx = 0;
+    STATE.questions = DATA.rw1; // ← CRITICAL
   }
-
-  // 3️⃣ Final safety check
-  if (!window.questions || window.questions.length === 0) {
-    alert("Test data failed to load. Please refresh the page.");
-    return;
-  }
-
-  // 4️⃣ NOW it is safe
+  
   init();
 }
 
